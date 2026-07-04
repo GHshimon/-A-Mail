@@ -1,0 +1,477 @@
+<title>-A-Mail — UI モック</title>
+<style>
+  :root {
+    /* neutrals with a cool/blue bias — chosen, not defaulted */
+    --wall-1: #cfe0f0;
+    --wall-2: #e7ecf2;
+    --win: #f4f5f7;
+    --panel: #ffffff;
+    --sidebar: rgba(238, 241, 246, 0.72);
+    --list: #fbfcfd;
+    --ink: #1c1e22;
+    --ink-2: #5b616b;
+    --ink-3: #8b9099;
+    --sep: #e2e5ea;
+    --sep-strong: #d4d8df;
+    --accent: #0a6cff;
+    --accent-soft: #e7f0ff;
+    --unread: #0a6cff;
+    --ai: #7b5cff;
+    --ai-2: #b04bff;
+    --ai-soft: #f0ecff;
+    --ghost: #9aa2ae;
+    --good: #34a853;
+    --warn: #e8a33d;
+    --crit: #e5484d;
+    --shadow: 0 24px 70px -20px rgba(20, 33, 61, .45), 0 6px 18px -10px rgba(20,33,61,.3);
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --wall-1: #1b2740;
+      --wall-2: #0e1420;
+      --win: #232427;
+      --panel: #1e1f22;
+      --sidebar: rgba(38, 40, 46, 0.66);
+      --list: #202124;
+      --ink: #edeef1;
+      --ink-2: #a5abb5;
+      --ink-3: #737884;
+      --sep: #34363b;
+      --sep-strong: #3d4046;
+      --accent: #2f83ff;
+      --accent-soft: #16345e;
+      --unread: #4a97ff;
+      --ai: #a58bff;
+      --ai-2: #cf7bff;
+      --ai-soft: #2a2547;
+      --ghost: #6b7280;
+      --shadow: 0 30px 80px -18px rgba(0,0,0,.7), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="light"] {
+    --wall-1: #cfe0f0; --wall-2: #e7ecf2; --win: #f4f5f7; --panel: #ffffff;
+    --sidebar: rgba(238, 241, 246, 0.72); --list: #fbfcfd; --ink: #1c1e22;
+    --ink-2: #5b616b; --ink-3: #8b9099; --sep: #e2e5ea; --sep-strong: #d4d8df;
+    --accent: #0a6cff; --accent-soft: #e7f0ff; --unread: #0a6cff; --ai: #7b5cff;
+    --ai-2: #b04bff; --ai-soft: #f0ecff; --ghost: #9aa2ae;
+    --shadow: 0 24px 70px -20px rgba(20, 33, 61, .45), 0 6px 18px -10px rgba(20,33,61,.3);
+  }
+  :root[data-theme="dark"] {
+    --wall-1: #1b2740; --wall-2: #0e1420; --win: #232427; --panel: #1e1f22;
+    --sidebar: rgba(38, 40, 46, 0.66); --list: #202124; --ink: #edeef1;
+    --ink-2: #a5abb5; --ink-3: #737884; --sep: #34363b; --sep-strong: #3d4046;
+    --accent: #2f83ff; --accent-soft: #16345e; --unread: #4a97ff; --ai: #a58bff;
+    --ai-2: #cf7bff; --ai-soft: #2a2547; --ghost: #6b7280;
+    --shadow: 0 30px 80px -18px rgba(0,0,0,.7), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: var(--font);
+    color: var(--ink);
+    background:
+      radial-gradient(1200px 700px at 15% -10%, var(--wall-1), transparent 60%),
+      radial-gradient(1000px 800px at 110% 120%, var(--wall-1), transparent 55%),
+      linear-gradient(160deg, var(--wall-2), var(--wall-1));
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 26px 20px 40px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .topbar {
+    width: 100%;
+    max-width: 1180px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--ink);
+    padding: 0 4px;
+  }
+  .topbar .wordmark { font-weight: 700; letter-spacing: -.01em; font-size: 15px; }
+  .topbar .wordmark .dash { color: var(--accent); }
+  .topbar .sub { color: var(--ink-2); font-size: 12.5px; }
+  @media (prefers-color-scheme: dark) { .topbar { color: #eef1f6; } }
+
+  .theme-toggle {
+    font-family: var(--font);
+    font-size: 12px;
+    color: var(--ink);
+    background: var(--panel);
+    border: 1px solid var(--sep-strong);
+    border-radius: 999px;
+    padding: 6px 12px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    box-shadow: 0 2px 6px -3px rgba(0,0,0,.25);
+  }
+  .theme-toggle:hover { border-color: var(--accent); }
+  .theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ── window ── */
+  .window {
+    width: 100%;
+    max-width: 1180px;
+    height: min(760px, 82vh);
+    background: var(--win);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: 44px 1fr;
+    border: 1px solid rgba(255,255,255,.06);
+  }
+
+  /* ── title bar / toolbar ── */
+  .titlebar {
+    display: grid;
+    grid-template-columns: 220px 300px 1fr;
+    align-items: center;
+    background: var(--sidebar);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid var(--sep);
+  }
+  .traffic { display: flex; align-items: center; gap: 8px; padding: 0 18px; height: 44px; }
+  .light { width: 12px; height: 12px; border-radius: 50%; }
+  .light.r { background: #ff5f57; box-shadow: inset 0 0 0 .5px rgba(0,0,0,.18); }
+  .light.y { background: #febc2e; box-shadow: inset 0 0 0 .5px rgba(0,0,0,.18); }
+  .light.g { background: #28c840; box-shadow: inset 0 0 0 .5px rgba(0,0,0,.18); }
+
+  .tb-list { display:flex; align-items:center; padding: 0 14px; color: var(--ink-2); font-size:12px; height:44px; border-left: 1px solid var(--sep); }
+  .tb-main { display:flex; align-items:center; gap: 10px; padding: 0 14px; height:44px; border-left: 1px solid var(--sep); }
+  .search {
+    flex: 1;
+    display:flex; align-items:center; gap:7px;
+    background: color-mix(in srgb, var(--ink) 7%, transparent);
+    border-radius: 7px; padding: 5px 10px; color: var(--ink-3); font-size: 12.5px;
+    max-width: 260px;
+  }
+  .toolbtn {
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:12px; color:#fff; background: var(--accent);
+    border:none; border-radius:7px; padding:6px 11px; cursor:pointer; font-family:var(--font);
+    box-shadow: 0 1px 2px rgba(10,50,120,.3);
+  }
+  .toolbtn.ghost { background: transparent; color: var(--ink-2); box-shadow:none; }
+  .toolbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ── body grid ── */
+  .body {
+    display: grid;
+    grid-template-columns: 220px 300px 1fr 288px;
+    min-height: 0;
+  }
+
+  /* sidebar (vibrancy) */
+  .sidebar {
+    background: var(--sidebar);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-right: 1px solid var(--sep);
+    padding: 6px 8px;
+    overflow-y: auto;
+    font-size: 13px;
+  }
+  .acct { font-size: 11px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; padding: 12px 10px 6px; }
+  .nav { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px; }
+  .nav li { display:flex; align-items:center; gap:9px; padding: 6px 10px; border-radius: 7px; color: var(--ink); cursor: pointer; }
+  .nav li .ic { width:16px; text-align:center; opacity:.9; }
+  .nav li .count { margin-left:auto; font-size:11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .nav li:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+  .nav li.active { background: var(--accent); color:#fff; }
+  .nav li.active .count { color: rgba(255,255,255,.85); }
+  .nav li.active .ic { opacity: 1; }
+
+  /* message list */
+  .maillist {
+    background: var(--list);
+    border-right: 1px solid var(--sep);
+    overflow-y: auto;
+  }
+  .list-head { position: sticky; top:0; background: color-mix(in srgb, var(--list) 88%, transparent); backdrop-filter: blur(8px); padding: 12px 16px 8px; border-bottom: 1px solid var(--sep); }
+  .list-head h2 { margin:0; font-size: 15px; letter-spacing: -.01em; }
+  .list-head .meta { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+  .row { padding: 10px 16px; border-bottom: 1px solid var(--sep); cursor:pointer; display:grid; grid-template-columns: 8px 1fr; gap: 8px; }
+  .row:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+  .row.sel { background: var(--accent-soft); }
+  .row .dot { width:8px; height:8px; border-radius:50%; margin-top:6px; }
+  .row.unread .dot { background: var(--unread); }
+  .row .who { font-weight: 600; font-size: 13px; display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .row .who .t { font-weight: 400; font-size: 11px; color: var(--ink-3); white-space:nowrap; font-variant-numeric: tabular-nums; }
+  .row.sel .who .t { color: var(--accent); }
+  .row .subj { font-size: 12.5px; margin-top: 1px; color: var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .row .snip { font-size: 12px; color: var(--ink-3); margin-top: 1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .row .tags { margin-top: 5px; display:flex; gap:5px; }
+  .tag { font-size:10px; padding:1px 6px; border-radius: 4px; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink-2); }
+  .tag.att::before { content: "📎 "; }
+
+  /* compose pane */
+  .compose { background: var(--panel); display:flex; flex-direction:column; min-height:0; }
+  .cmp-toolbar { display:flex; align-items:center; gap:8px; padding: 10px 16px; border-bottom: 1px solid var(--sep); }
+  .cmp-toolbar .spacer { flex:1; }
+  .chip { font-size:11px; color: var(--ink-2); background: color-mix(in srgb, var(--ink) 6%, transparent); border-radius:6px; padding:4px 8px; display:inline-flex; gap:5px; align-items:center; }
+  .kbd { font-size:10px; font-family: var(--font); background: color-mix(in srgb, var(--ink) 12%, transparent); border-radius:4px; padding:1px 5px; color: var(--ink-2); }
+  .fields { padding: 4px 18px 0; }
+  .field { display:flex; align-items:center; gap:10px; padding: 9px 0; border-bottom: 1px solid var(--sep); font-size: 13px; }
+  .field .lbl { color: var(--ink-3); width: 40px; flex-shrink:0; }
+  .field .val { color: var(--ink); }
+  .pill { background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 9px; font-size:12px; font-weight:500; }
+  .editor { flex:1; padding: 16px 20px; font-size: 13.5px; line-height: 1.72; color: var(--ink); overflow-y:auto; }
+  .editor p { margin: 0 0 14px; }
+  .ghost { color: var(--ghost); }
+  .ghost-cta { display:inline-flex; align-items:center; gap:6px; margin-left:8px; vertical-align: baseline; }
+  .ghost-cta .kbd { background: var(--ai-soft); color: var(--ai); }
+  .caret { display:inline-block; width:1.5px; height:1.05em; background: var(--accent); vertical-align:-2px; animation: blink 1.05s steps(1) infinite; margin: 0 1px; }
+  @keyframes blink { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .caret { animation: none; } }
+
+  /* AI sidebar */
+  .ai {
+    background: linear-gradient(180deg, var(--ai-soft), var(--panel) 130px);
+    border-left: 1px solid var(--sep);
+    overflow-y:auto;
+    display:flex; flex-direction:column;
+  }
+  .ai-head { padding: 14px 16px 12px; }
+  .ai-title { display:flex; align-items:center; gap:8px; font-weight:700; font-size:13.5px; letter-spacing:-.01em; }
+  .spark { width:18px; height:18px; border-radius:6px; background: linear-gradient(135deg, var(--ai), var(--ai-2)); display:inline-grid; place-items:center; color:#fff; font-size:11px; box-shadow: 0 2px 6px -2px color-mix(in srgb, var(--ai) 60%, transparent); }
+  .ai-sub { font-size:11px; color: var(--ink-3); margin-top:4px; display:flex; align-items:center; gap:6px; }
+  .privacy { display:inline-flex; align-items:center; gap:4px; font-size:10.5px; color: var(--good); }
+  .ai-sec { padding: 6px 16px 14px; }
+  .ai-sec h3 { font-size: 10.5px; text-transform: uppercase; letter-spacing:.05em; color: var(--ink-3); margin: 10px 0 8px; font-weight:600; }
+  .points { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .points li { font-size:12px; line-height:1.5; color: var(--ink); padding-left: 20px; position:relative; }
+  .points li::before { position:absolute; left:0; top:0; font-size:11px; }
+  .points li.hist::before { content:"🕘"; }
+  .points li.commit::before { content:"✅"; }
+  .points li.todo::before { content:"⚠️"; }
+  .points li b { color: var(--ink); }
+  .related { display:flex; flex-direction:column; gap:8px; }
+  .rel {
+    background: var(--panel); border: 1px solid var(--sep); border-radius: 9px; padding: 9px 11px; cursor:pointer;
+  }
+  .rel:hover { border-color: var(--ai); }
+  .rel .rt { font-size: 12px; font-weight:600; display:flex; justify-content:space-between; gap:8px; }
+  .rel .rt .d { font-weight:400; color: var(--ink-3); font-size:10.5px; white-space:nowrap; font-variant-numeric: tabular-nums; }
+  .rel .rs { font-size: 11.5px; color: var(--ink-3); margin-top:3px; line-height:1.45; }
+  .rel .score { font-size:10px; color: var(--ai); margin-top:5px; }
+  .ai-foot { margin-top:auto; padding: 12px 16px; border-top: 1px solid var(--sep); }
+  .ai-generate { width:100%; border:none; cursor:pointer; font-family:var(--font); font-size:12.5px; font-weight:600; color:#fff; padding:9px; border-radius:9px; background: linear-gradient(135deg, var(--ai), var(--ai-2)); box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--ai) 55%, transparent); }
+  .ai-generate:focus-visible { outline:2px solid var(--ai); outline-offset:2px; }
+
+  .caption { width:100%; max-width:1180px; color: var(--ink-2); font-size:12px; padding: 0 6px; line-height:1.55; }
+  @media (prefers-color-scheme: dark) { .caption { color:#c3c9d4; } }
+  :root[data-theme="dark"] .caption { color:#c3c9d4; }
+  :root[data-theme="light"] .caption { color:#5b616b; }
+
+  /* responsive: collapse AI + list gracefully */
+  @media (max-width: 1080px) {
+    .body { grid-template-columns: 200px 260px 1fr 260px; }
+    .titlebar { grid-template-columns: 200px 260px 1fr; }
+  }
+  @media (max-width: 900px) {
+    .window { height: auto; }
+    .body { grid-template-columns: 1fr; }
+    .titlebar { grid-template-columns: 1fr; }
+    .tb-list, .sidebar, .maillist, .ai { display: none; }
+    .body .compose { min-height: 60vh; }
+  }
+</style>
+
+<div class="topbar">
+  <div>
+    <span class="wordmark"><span class="dash">-</span>A-Mail</span>
+    <span class="sub">&nbsp;· Gemini 補助つきメールクライアント（UIモック）</span>
+  </div>
+  <button class="theme-toggle" id="tt" aria-label="テーマ切替">🌗 テーマ</button>
+</div>
+
+<div class="window" role="img" aria-label="-A-Mail の macOS 風メール作成画面のモック">
+  <!-- title bar -->
+  <div class="titlebar">
+    <div class="traffic" aria-hidden="true">
+      <span class="light r"></span><span class="light y"></span><span class="light g"></span>
+    </div>
+    <div class="tb-list">受信トレイ</div>
+    <div class="tb-main">
+      <button class="toolbtn ghost" title="返信">↩︎ 返信</button>
+      <div class="search">🔍 メールを検索</div>
+      <div class="spacer" style="flex:1"></div>
+      <button class="toolbtn" title="新規作成">✏️ 作成</button>
+    </div>
+  </div>
+
+  <div class="body">
+    <!-- sidebar -->
+    <nav class="sidebar" aria-label="フォルダ">
+      <div class="acct">douchi.shimon@gmail.com</div>
+      <ul class="nav">
+        <li class="active"><span class="ic">📥</span> 受信トレイ <span class="count">12</span></li>
+        <li><span class="ic">⭐️</span> スター付き</li>
+        <li><span class="ic">📤</span> 送信済み</li>
+        <li><span class="ic">📝</span> 下書き <span class="count">2</span></li>
+        <li><span class="ic">🗄</span> アーカイブ</li>
+        <li><span class="ic">🗑</span> ゴミ箱</li>
+      </ul>
+      <div class="acct">iCloud</div>
+      <ul class="nav">
+        <li><span class="ic">📥</span> 受信トレイ <span class="count">3</span></li>
+        <li><span class="ic">📤</span> 送信済み</li>
+      </ul>
+    </nav>
+
+    <!-- message list -->
+    <section class="maillist" aria-label="メッセージ一覧">
+      <div class="list-head">
+        <h2>受信トレイ</h2>
+        <div class="meta">12 件の未読 · 最終同期 2 分前</div>
+      </div>
+      <div class="row sel unread">
+        <span class="dot"></span>
+        <div>
+          <div class="who"><span>田中 亮 <span style="color:var(--ink-3);font-weight:400">· 山手商事</span></span><span class="t">14:32</span></div>
+          <div class="subj">Re: 4月納品分の請求書について</div>
+          <div class="snip">お世話になっております。先日ご相談した納期の件、社内で確認が取れました…</div>
+          <div class="tags"><span class="tag att">見積_0704.pdf</span></div>
+        </div>
+      </div>
+      <div class="row unread">
+        <span class="dot"></span>
+        <div>
+          <div class="who"><span>GitHub</span><span class="t">13:10</span></div>
+          <div class="subj">[ghshimon/-a-mail] CI passed on main</div>
+          <div class="snip">All checks have passed for commit 4462899…</div>
+        </div>
+      </div>
+      <div class="row">
+        <span class="dot"></span>
+        <div>
+          <div class="who"><span>佐藤 みなみ</span><span class="t">11:47</span></div>
+          <div class="subj">来週の打ち合わせ日程の件</div>
+          <div class="snip">火曜か水曜の午後で調整できればと思っております。ご都合いかがでしょうか。</div>
+        </div>
+      </div>
+      <div class="row">
+        <span class="dot"></span>
+        <div>
+          <div class="who"><span>Apple</span><span class="t">昨日</span></div>
+          <div class="subj">ご購入の領収書</div>
+          <div class="snip">iCloud+ 200GB のお支払いが完了しました。</div>
+        </div>
+      </div>
+      <div class="row">
+        <span class="dot"></span>
+        <div>
+          <div class="who"><span>鈴木 建設 経理部</span><span class="t">7/2</span></div>
+          <div class="subj">3月分お支払いのご連絡</div>
+          <div class="snip">下記の通りお振込みいたしましたのでご確認ください。</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- compose pane -->
+    <section class="compose" aria-label="メール作成">
+      <div class="cmp-toolbar">
+        <span class="chip">↩︎ 返信を作成中</span>
+        <div class="spacer"></div>
+        <span class="chip">📎 添付</span>
+        <span class="chip">🗑 破棄</span>
+        <button class="toolbtn" title="送信">送信 <span class="kbd" style="background:rgba(255,255,255,.25);color:#fff">⌘↩</span></button>
+      </div>
+      <div class="fields">
+        <div class="field"><span class="lbl">宛先</span><span class="val"><span class="pill">田中 亮 &lt;tanaka@yamate-corp.jp&gt;</span></span></div>
+        <div class="field"><span class="lbl">件名</span><span class="val">Re: 4月納品分の請求書について</span></div>
+      </div>
+      <div class="editor" id="editor">
+        <p>田中様</p>
+        <p>お世話になっております。ドウチです。<br>
+        ご連絡ありがとうございます。納期の件、社内でご確認いただけたとのこと、<span id="typed">承知いたしました。それでは予定通り</span><span class="ghost" id="ghost">4月20日の納品に向けて準備を進めさせていただきます。</span><span class="ghost-cta"><span class="kbd" id="tabkey">⇥ Tab で確定</span></span><span class="caret" aria-hidden="true"></span></p>
+      </div>
+    </section>
+
+    <!-- AI sidebar -->
+    <aside class="ai" aria-label="AI アシスト">
+      <div class="ai-head">
+        <div class="ai-title"><span class="spark">✦</span> AI アシスト</div>
+        <div class="ai-sub">
+          <span>Gemini 2.5 Flash</span> ·
+          <span class="privacy">🔒 オプトイン中</span>
+        </div>
+      </div>
+
+      <div class="ai-sec">
+        <h3>この相手との要点</h3>
+        <ul class="points">
+          <li class="hist"><b>経緯</b> ： 4月納品分の請求書を6/28に送付。田中様が社内確認中だった。</li>
+          <li class="commit"><b>約束</b> ： こちらは「納期は先方確認後に確定」と回答済み（6/28）。</li>
+          <li class="todo"><b>未対応</b> ： 見積_0704.pdf への署名戻しがまだ。次アクションは納品日の確定連絡。</li>
+        </ul>
+      </div>
+
+      <div class="ai-sec">
+        <h3>関連する過去メール</h3>
+        <div class="related">
+          <div class="rel">
+            <div class="rt"><span>納期についてのご相談</span><span class="d">6/28</span></div>
+            <div class="rs">「先方の確認が取れ次第、正式な納品日をご連絡します」とお伝えしています。</div>
+            <div class="score">◇ 関連度 高</div>
+          </div>
+          <div class="rel">
+            <div class="rt"><span>4月分 請求書送付の件</span><span class="d">6/28</span></div>
+            <div class="rs">請求書PDFを添付して送付。金額 ¥286,000（税込）。</div>
+            <div class="score">◇ 関連度 中</div>
+          </div>
+          <div class="rel">
+            <div class="rt"><span>お見積りのご送付</span><span class="d">5/15</span></div>
+            <div class="rs">初回見積を提示。納期は「発注後 約3週間」と記載。</div>
+            <div class="score">◇ 関連度 中</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ai-foot">
+        <button class="ai-generate">✦ 返信ドラフトを生成</button>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<p class="caption">
+  <b>これはクリック可能な静的モックです</b>（実アプリではありません）。本文の入力欄でグレーの予測テキストが <b>予測入力（スマート補完）</b>、右の <b>AI アシスト</b>が
+  作成中の相手・話題に応じた過去メールの要点サイドバー、下部の <b>返信ドラフト生成</b>が機能C。<b>Tab キー</b>で補完を確定できます。右上でライト／ダークを切替。
+</p>
+
+<script>
+  // theme toggle
+  const root = document.documentElement;
+  const tt = document.getElementById('tt');
+  tt.addEventListener('click', () => {
+    const cur = root.getAttribute('data-theme')
+      || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+  });
+
+  // Tab accepts the ghost completion
+  const ghost = document.getElementById('ghost');
+  const cta = document.querySelector('.ghost-cta');
+  const editor = document.getElementById('editor');
+  function accept() {
+    if (!ghost || ghost.dataset.done) return;
+    ghost.classList.remove('ghost');
+    ghost.dataset.done = '1';
+    if (cta) cta.remove();
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') { e.preventDefault(); accept(); }
+  });
+  editor.addEventListener('click', accept);
+  editor.style.cursor = 'text';
+</script>
