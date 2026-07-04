@@ -1,11 +1,10 @@
 name: Deploy design site to GitHub Pages
 
+# NOTE: GitHub Pages must be enabled once in the repo UI
+# (Settings > Pages > Source: "GitHub Actions"). The Actions token
+# cannot auto-enable it. Private repos also require a paid plan for
+# Pages. Run manually (workflow_dispatch) after Pages is enabled.
 on:
-  push:
-    branches: ["claude/mac-mail-app-handoff-g6crjh"]
-    paths:
-      - "design/**"
-      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -28,8 +27,6 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - name: Upload design/ as site
         uses: actions/upload-pages-artifact@v3
         with:
