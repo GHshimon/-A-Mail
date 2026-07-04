@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>-A-Mail ｜ プレビュー</title>
+<style>
+  :root{
+    --bg:#eef1f5; --panel:#ffffff; --ink:#1c1e22; --ink2:#5b616b; --ink3:#8b9099;
+    --sep:#e2e5ea; --sep2:#d4d8df; --accent:#0a6cff; --ai:#7b5cff; --ai2:#b04bff; --good:#2e9e57;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",Meiryo,system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#15171b; --panel:#1e1f22; --ink:#edeef1; --ink2:#a5abb5; --ink3:#737884;
+      --sep:#33363b; --sep2:#3d4046; --accent:#2f83ff; --ai:#a58bff; --ai2:#cf7bff; }
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1.7;
+    -webkit-font-smoothing:antialiased;display:flex;justify-content:center;padding:32px 18px 60px;}
+  .wrap{width:100%;max-width:640px;}
+  .brand{font-weight:700;font-size:20px;letter-spacing:-.01em;}
+  .brand .d{color:var(--accent);}
+  .tag{color:var(--ink2);font-size:14px;margin:4px 0 22px;}
+  .card{display:block;text-decoration:none;color:inherit;background:var(--panel);border:1px solid var(--sep);
+    border-radius:14px;padding:18px 20px;margin-bottom:14px;box-shadow:0 1px 3px rgba(20,33,61,.05);transition:border-color .15s;}
+  .card:hover{border-color:var(--accent);}
+  .card .t{font-weight:700;font-size:16px;display:flex;align-items:center;gap:9px;}
+  .card .d{color:var(--ink2);font-size:13.5px;margin-top:6px;}
+  .badge{font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px;margin-left:auto;}
+  .badge.live{color:#fff;background:linear-gradient(135deg,var(--ai),var(--ai2));}
+  .badge.static{color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent);}
+  .note{font-size:12.5px;color:var(--ink3);background:color-mix(in srgb,var(--good) 9%,transparent);
+    border:1px solid color-mix(in srgb,var(--good) 28%,transparent);border-radius:12px;padding:12px 14px;margin-top:8px;}
+  .note b{color:var(--good);}
+  .foot{font-size:12px;color:var(--ink3);margin-top:22px;}
+  a.plain{color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><span class="d">-</span>A-Mail</div>
+  <div class="tag">Gemini 補助つき Mac 用メールクライアント ／ プレビュー</div>
+
+  <a class="card" href="./poc_smartcompose.html">
+    <div class="t">✦ 先読み補完 PoC <span class="badge live">要 APIキー</span></div>
+    <div class="d">本文を打つと Gemini が続きをグレーで先読み表示。<b>Tab</b> で確定。日本語IME対応。実際の手触りとレイテンシを確認できます。</div>
+  </a>
+
+  <a class="card" href="./mock.html">
+    <div class="t">🖥 UIモック（macOS風） <span class="badge static">静的</span></div>
+    <div class="d">作成画面のデザイン確認用。3ペイン＋AI補助サイドバー、予測入力・関連情報・返信ドラフト生成のUI。ライト／ダーク対応。</div>
+  </a>
+
+  <div class="note">🔒 <b>プライバシー</b>：PoC で入力する Gemini API キーと本文は、このページからGoogleへ直接送信されます（当方のサーバは経由しません）。キーはお使いのブラウザ内にのみ保存されます。</div>
+
+  <div class="foot">iPhone の Safari でもそのまま開けます。無料の API キーは
+    <a class="plain" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a> で発行できます。</div>
+</div>
+</body>
+</html>
