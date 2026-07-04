@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>-A-Mail 先読み補完 PoC（Gemini）</title>
+<style>
+  :root{
+    --bg:#eef1f5; --panel:#ffffff; --ink:#1c1e22; --ink2:#5b616b; --ink3:#8b9099;
+    --sep:#e2e5ea; --sep2:#d4d8df; --accent:#0a6cff; --accent-soft:#e7f0ff;
+    --ghost:#a2a8b2; --ai:#7b5cff; --ai2:#b04bff; --good:#2e9e57; --warn:#d98a1f; --crit:#e5484d;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",Meiryo,system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#15171b; --panel:#1e1f22; --ink:#edeef1; --ink2:#a5abb5; --ink3:#737884;
+      --sep:#33363b; --sep2:#3d4046; --accent:#2f83ff; --accent-soft:#16345e; --ghost:#6b7280;
+      --ai:#a58bff; --ai2:#cf7bff; }
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{margin:0;font-family:var(--font);color:var(--ink);background:var(--bg);
+    -webkit-font-smoothing:antialiased;line-height:1.7;display:flex;justify-content:center;padding:24px 16px 60px;}
+  .wrap{width:100%;max-width:760px;}
+  header.h{margin-bottom:16px;}
+  .brand{font-weight:700;font-size:16px;letter-spacing:-.01em;}
+  .brand .d{color:var(--accent);}
+  .tagline{color:var(--ink2);font-size:13px;margin-top:3px;}
+  .card{background:var(--panel);border:1px solid var(--sep);border-radius:14px;padding:16px 18px;margin-bottom:14px;
+    box-shadow:0 1px 3px rgba(20,33,61,.05);}
+  .card h2{margin:0 0 12px;font-size:13px;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;font-weight:600;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;}
+  .grid .full{grid-column:1/-1;}
+  label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--ink2);}
+  input[type=text],input[type=password],select,textarea{
+    font-family:var(--font);font-size:14px;color:var(--ink);background:var(--bg);
+    border:1px solid var(--sep2);border-radius:9px;padding:9px 11px;width:100%;}
+  input:focus,select,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);}
+  select{cursor:pointer;}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;}
+  button{font-family:var(--font);font-size:13px;border-radius:9px;padding:8px 14px;cursor:pointer;border:1px solid var(--sep2);
+    background:var(--panel);color:var(--ink);}
+  button.primary{background:var(--accent);color:#fff;border-color:transparent;font-weight:600;}
+  button:hover{border-color:var(--accent);}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .hint{font-size:12px;color:var(--ink3);}
+  .status{font-size:12px;display:inline-flex;align-items:center;gap:7px;color:var(--ink2);min-height:18px;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--ink3);}
+  .dot.on{background:var(--good);}
+  .dot.busy{background:var(--warn);animation:pulse 1s infinite;}
+  .dot.err{background:var(--crit);}
+  @keyframes pulse{50%{opacity:.35;}}
+  @media (prefers-reduced-motion:reduce){.dot.busy{animation:none;}}
+
+  /* editor: textarea + ghost overlay */
+  .editor-wrap{position:relative;}
+  .metrics{ /* shared box model for textarea + mirror */
+    font-family:var(--font);font-size:15px;line-height:1.85;letter-spacing:0;
+    padding:13px 14px;border-radius:11px;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word;}
+  #mirror{position:absolute;inset:0;border:1px solid transparent;color:transparent;
+    pointer-events:none;overflow:hidden;}
+  #mirror .ghost{color:var(--ghost);}
+  #mirror .tab{display:inline-block;font-size:10px;color:var(--ai);background:color-mix(in srgb,var(--ai) 16%,transparent);
+    border-radius:4px;padding:0 5px;margin-left:6px;transform:translateY(-1px);}
+  #body{position:relative;background:transparent;border:1px solid var(--sep2);color:var(--ink);
+    resize:vertical;min-height:230px;width:100%;}
+  #body:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);}
+  .foot{font-size:11.5px;color:var(--ink3);margin-top:6px;}
+  .privacy{background:color-mix(in srgb,var(--good) 10%,transparent);border:1px solid color-mix(in srgb,var(--good) 30%,transparent);
+    color:var(--ink2);border-radius:10px;padding:10px 12px;font-size:12px;margin-top:6px;}
+  .privacy b{color:var(--good);}
+  code{background:color-mix(in srgb,var(--ink) 8%,transparent);border-radius:4px;padding:1px 5px;font-size:12px;}
+  a{color:var(--accent);}
+  .toggles{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--ink2);}
+  .toggles label{display:inline-flex;gap:6px;align-items:center;cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="h">
+    <div class="brand"><span class="d">-</span>A-Mail ／ 先読み補完 PoC</div>
+    <div class="tagline">本文を打つと、Gemini が続きをグレーで先読み表示します。<b>Tab</b> で確定 ／ 続けて入力で破棄。日本語IME対応。</div>
+  </header>
+
+  <div class="card">
+    <h2>設定</h2>
+    <div class="grid">
+      <label class="f full">Gemini API キー
+        <input id="key" type="password" placeholder="AIza... （このブラウザ内にのみ保存されます）" autocomplete="off" spellcheck="false">
+      </label>
+      <label class="f">モデル
+        <select id="model">
+          <option value="gemini-2.5-flash">gemini-2.5-flash（推奨・速い）</option>
+          <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite（最速・軽い）</option>
+          <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+        </select>
+      </label>
+      <label class="f">補完の長さ（最大トークン）
+        <select id="maxtok">
+          <option value="32">短め（32）</option>
+          <option value="64" selected>標準（64）</option>
+          <option value="128">長め（128）</option>
+        </select>
+      </label>
+      <label class="f">宛先（文脈・任意）
+        <input id="to" type="text" placeholder="田中様 / tanaka@example.co.jp">
+      </label>
+      <label class="f">件名（文脈・任意）
+        <input id="subj" type="text" placeholder="Re: 4月納品分の請求書について">
+      </label>
+    </div>
+    <div class="toggles">
+      <label><input type="checkbox" id="autosave" checked> キー・設定をこのブラウザに保存</label>
+      <label><input type="checkbox" id="enabled" checked> 先読み補完を有効にする</label>
+    </div>
+    <div class="row">
+      <span class="status"><span class="dot" id="dot"></span><span id="statusText">キーを入力してください</span></span>
+      <span style="flex:1"></span>
+      <button id="clearKey">キーを消去</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>本文</h2>
+    <div class="editor-wrap">
+      <div id="mirror" class="metrics" aria-hidden="true"></div>
+      <textarea id="body" class="metrics" placeholder="お世話になっております。○○です。&#10;（ここに書き始めると、続きが先読み表示されます）"></textarea>
+    </div>
+    <div class="foot">手が止まって約 <span id="dbLabel">350</span>ms で候補を取得します ／ <span id="lat">—</span></div>
+    <div class="privacy">🔒 <b>プライバシー</b>：APIキーと本文はこのHTMLからGoogleのGemini APIへ直接送信されます（当方のサーバは経由しません）。キーはお使いのブラウザの localStorage にのみ保存されます。本番アプリでは Keychain 管理・オプトイン制御にします。</div>
+  </div>
+
+  <div class="card" style="font-size:13px;color:var(--ink2);">
+    <h2>使い方</h2>
+    ① 上に Gemini API キーを入れる（<a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a> で無料発行）→ ② 本文を書き始める → ③ グレーの続きが出たら <code>Tab</code> で確定。<br>
+    ※ <b>必ずご自身のブラウザ（Chrome / Safari）でこのファイルを開いてください。</b>プレビュー枠内では外部通信がブロックされ動きません。
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $=function(id){return document.getElementById(id);};
+  var keyEl=$("key"),modelEl=$("model"),maxtokEl=$("maxtok"),toEl=$("to"),subjEl=$("subj"),
+      bodyEl=$("body"),mirror=$("mirror"),dot=$("dot"),statusText=$("statusText"),
+      latEl=$("lat"),autosaveEl=$("autosave"),enabledEl=$("enabled"),clearKeyEl=$("clearKey");
+  var DEBOUNCE=350;
+  var ghost="";           // current suggestion (after cursor, at end)
+  var composing=false;    // IME composition in progress
+  var timer=null;
+  var ctrl=null;          // AbortController for in-flight request
+  var gen=0;              // request generation id
+
+  // ---- persistence ----
+  var LS="amail_poc_v1";
+  function save(){
+    if(!autosaveEl.checked){ localStorage.removeItem(LS); return; }
+    try{ localStorage.setItem(LS, JSON.stringify({
+      key:keyEl.value, model:modelEl.value, maxtok:maxtokEl.value,
+      to:toEl.value, subj:subjEl.value, enabled:enabledEl.checked
+    })); }catch(e){}
+  }
+  function load(){
+    try{
+      var s=JSON.parse(localStorage.getItem(LS)||"{}");
+      if(s.key)keyEl.value=s.key; if(s.model)modelEl.value=s.model; if(s.maxtok)maxtokEl.value=s.maxtok;
+      if(s.to)toEl.value=s.to; if(s.subj)subjEl.value=s.subj;
+      if(typeof s.enabled==="boolean")enabledEl.checked=s.enabled;
+    }catch(e){}
+  }
+  load();
+
+  function setStatus(kind,text){
+    dot.className="dot"+(kind?(" "+kind):"");
+    statusText.textContent=text;
+  }
+  function refreshReady(){
+    if(!keyEl.value.trim()) setStatus("","キーを入力してください");
+    else if(!enabledEl.checked) setStatus("","先読み補完はオフです");
+    else setStatus("on","準備OK。本文を書き始めてください");
+  }
+  refreshReady();
+
+  // ---- ghost overlay rendering ----
+  function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+  function renderMirror(){
+    var text=bodyEl.value;
+    var html=esc(text);
+    if(ghost){
+      html+='<span class="ghost">'+esc(ghost)+'</span><span class="tab">⇥ Tab</span>';
+    }
+    // keep a trailing space so wrapping matches textarea
+    mirror.innerHTML=html+'​';
+    mirror.scrollTop=bodyEl.scrollTop;
+  }
+  function clearGhost(){ if(ghost){ghost="";renderMirror();} }
+
+  function cursorAtEnd(){ return bodyEl.selectionStart===bodyEl.value.length && bodyEl.selectionStart===bodyEl.selectionEnd; }
+
+  function acceptGhost(){
+    if(!ghost) return false;
+    var pos=bodyEl.value.length;
+    bodyEl.value=bodyEl.value+ghost;
+    bodyEl.selectionStart=bodyEl.selectionEnd=bodyEl.value.length;
+    ghost="";
+    renderMirror();
+    save();
+    return true;
+  }
+
+  // ---- Gemini call ----
+  function buildContents(){
+    var parts=[];
+    var head="";
+    if(toEl.value.trim()) head+="[宛先] "+toEl.value.trim()+"\n";
+    if(subjEl.value.trim()) head+="[件名] "+subjEl.value.trim()+"\n";
+    head+="[ここまで書いた本文]\n"+bodyEl.value;
+    return head;
+  }
+  var SYSTEM="あなたは日本語ビジネスメールの入力補完エンジンです。ユーザーが書いた本文の、自然な続きだけを出力してください。"
+    +"出力は短く（最大でも1文・十数語程度）。挨拶のやり直し・説明・前置き・引用符・箇条書きは付けない。"
+    +"既に書かれている文字は繰り返さず、続きのみを返す。敬語で、書き手の文体に合わせる。";
+
+  async function fetchCompletion(){
+    var key=keyEl.value.trim();
+    if(!key || !enabledEl.checked) return;
+    if(composing) return;
+    if(bodyEl.value.trim().length<2){ clearGhost(); return; }
+    if(!cursorAtEnd()){ clearGhost(); return; }
+
+    var myGen=++gen;
+    if(ctrl) ctrl.abort();
+    ctrl=new AbortController();
+    setStatus("busy","候補を取得中…");
+    var t0=performance.now();
+
+    var url="https://generativelanguage.googleapis.com/v1beta/models/"
+      +encodeURIComponent(modelEl.value)+":generateContent?key="+encodeURIComponent(key);
+    var payload={
+      systemInstruction:{parts:[{text:SYSTEM}]},
+      contents:[{role:"user",parts:[{text:buildContents()}]}],
+      generationConfig:{temperature:0.2,maxOutputTokens:parseInt(maxtokEl.value,10),stopSequences:["\n\n"]}
+    };
+    try{
+      var res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(payload),signal:ctrl.signal});
+      var dt=Math.round(performance.now()-t0);
+      if(myGen!==gen) return; // stale
+      if(!res.ok){
+        var msg="エラー "+res.status;
+        if(res.status===400||res.status===403) msg="キーが不正か権限がありません（"+res.status+"）";
+        else if(res.status===429) msg="レート上限に達しました（429）。少し待ってください";
+        else if(res.status>=500) msg="サーバ側エラー（"+res.status+"）";
+        setStatus("err",msg); latEl.textContent="レイテンシ "+dt+"ms";
+        clearGhost(); return;
+      }
+      var data=await res.json();
+      if(myGen!==gen) return;
+      var out="";
+      try{ out=data.candidates[0].content.parts.map(function(p){return p.text||"";}).join(""); }catch(e){ out=""; }
+      out=(out||"").replace(/^\s+/,"").replace(/\r/g,"");
+      // avoid echoing what user already typed (light dedupe)
+      var tail=bodyEl.value.slice(-12);
+      if(tail && out.indexOf(tail)===0) out=out.slice(tail.length);
+      ghost = cursorAtEnd()? out : "";
+      renderMirror();
+      latEl.textContent="レイテンシ "+dt+"ms";
+      setStatus(ghost?"on":"on", ghost?"候補あり：Tab で確定":"準備OK");
+    }catch(err){
+      if(err && err.name==="AbortError") return;
+      setStatus("err","接続に失敗しました（ネットワーク／CORS）。ブラウザで直接開いていますか？");
+      clearGhost();
+    }
+  }
+
+  function schedule(){
+    clearGhost();
+    if(timer) clearTimeout(timer);
+    if(!enabledEl.checked || !keyEl.value.trim()){ refreshReady(); return; }
+    timer=setTimeout(fetchCompletion, DEBOUNCE);
+  }
+
+  // ---- events ----
+  bodyEl.addEventListener("input", function(){ renderMirror(); schedule(); save(); });
+  bodyEl.addEventListener("scroll", function(){ mirror.scrollTop=bodyEl.scrollTop; });
+  bodyEl.addEventListener("compositionstart", function(){ composing=true; clearGhost(); });
+  bodyEl.addEventListener("compositionend", function(){ composing=false; schedule(); });
+  bodyEl.addEventListener("keydown", function(e){
+    if(e.key==="Tab" && ghost && !composing){ e.preventDefault(); acceptGhost(); setStatus("on","確定しました"); return; }
+    if(e.key==="Escape" && ghost){ e.preventDefault(); clearGhost(); }
+  });
+  bodyEl.addEventListener("click", function(){ if(!cursorAtEnd()) clearGhost(); });
+
+  [keyEl,modelEl,maxtokEl,toEl,subjEl].forEach(function(el){
+    el.addEventListener("change", function(){ save(); refreshReady(); });
+  });
+  keyEl.addEventListener("input", function(){ save(); refreshReady(); });
+  enabledEl.addEventListener("change", function(){ save(); if(!enabledEl.checked)clearGhost(); refreshReady(); });
+  autosaveEl.addEventListener("change", save);
+  clearKeyEl.addEventListener("click", function(){ keyEl.value=""; save(); localStorage.removeItem(LS); refreshReady(); });
+
+  renderMirror();
+})();
+</script>
+</body>
+</html>
