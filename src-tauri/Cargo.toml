@@ -36,6 +36,9 @@ async-imap = { version = "0.10", default-features = false, features = ["runtime-
 async-native-tls = { version = "0.5", default-features = false, features = ["runtime-tokio"] }
 futures = "0.3"
 
+# --- メール MIME パース(件名/差出人/本文の復号。日本語エンコードワード対応)。 ---
+mail-parser = "0.11"
+
 # --- Gemini API 呼び出し(M3)。rustls で system openssl 非依存。 ---
 reqwest = { version = "0.12", default-features = false, features = [
   "json",

@@ -240,6 +240,90 @@ pub fn account_conn(conn: &Connection, account_id: i64) -> AppResult<Option<(Str
     }
 }
 
+/// フォルダ同期に必要な情報(account + 接続 + 現在の UIDVALIDITY)。
+pub struct FolderSyncInfo {
+    pub account_id: i64,
+    pub imap_path: String,
+    pub uidvalidity: Option<i64>,
+    pub email: String,
+    pub imap_host: String,
+    pub imap_port: u16,
+}
+
+/// フォルダ ID からアカウント接続情報 + UIDVALIDITY を引く。
+pub fn folder_sync_info(conn: &Connection, folder_id: i64) -> AppResult<Option<FolderSyncInfo>> {
+    match conn.query_row(
+        "SELECT f.account_id, f.imap_path, f.uidvalidity, a.email, a.imap_host, a.imap_port
+         FROM folders f JOIN accounts a ON a.id = f.account_id
+         WHERE f.id = ?1",
+        [folder_id],
+        |r| {
+            Ok(FolderSyncInfo {
+                account_id: r.get(0)?,
+                imap_path: r.get(1)?,
+                uidvalidity: r.get(2)?,
+                email: r.get(3)?,
+                imap_host: r.get(4)?,
+                imap_port: r.get(5)?,
+            })
+        },
+    ) {
+        Ok(v) => Ok(Some(v)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(AppError::from(e)),
+    }
+}
+
+/// フォルダのメッセージキャッシュを全消去(UIDVALIDITY 変化時)。
+pub fn clear_folder_messages(conn: &Connection, folder_id: i64) -> AppResult<()> {
+    conn.execute("DELETE FROM messages WHERE folder_id = ?1", [folder_id])?;
+    Ok(())
+}
+
+/// フォルダの UIDVALIDITY / UIDNEXT / 最終同期時刻を更新。
+pub fn set_folder_uidstate(
+    conn: &Connection,
+    folder_id: i64,
+    uidvalidity: i64,
+    uidnext: i64,
+) -> AppResult<()> {
+    let now = now_secs();
+    conn.execute(
+        "UPDATE folders SET uidvalidity = ?1, uidnext = ?2, last_synced = ?3 WHERE id = ?4",
+        params![uidvalidity, uidnext, now, folder_id],
+    )?;
+    Ok(())
+}
+
+/// メッセージヘッダを upsert。既存は flags のみ更新(本文/スニペットは保持)。
+#[allow(clippy::too_many_arguments)]
+pub fn upsert_message_header(
+    conn: &Connection,
+    account_id: i64,
+    folder_id: i64,
+    uid: u32,
+    from_addr: &str,
+    subject: &str,
+    date: i64,
+    flags: i64,
+) -> AppResult<()> {
+    conn.execute(
+        "INSERT INTO messages
+           (account_id, folder_id, uid, from_addr, subject, date, snippet, flags)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, '', ?7)
+         ON CONFLICT(folder_id, uid) DO UPDATE SET flags = excluded.flags",
+        params![account_id, folder_id, uid as i64, from_addr, subject, date, flags],
+    )?;
+    Ok(())
+}
+
+fn now_secs() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
+}
+
 /// フォルダを upsert(IMAP LIST 反映)。既存は name / role を更新。
 pub fn upsert_folder(
     conn: &Connection,

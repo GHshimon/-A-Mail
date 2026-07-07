@@ -1,7 +1,11 @@
 import { create } from "zustand";
 import type { MessageHeader } from "@/ipc/types";
 import { isTauri } from "@/ipc/client";
-import { listMessages, markRead as ipcMarkRead } from "@/ipc/mail";
+import {
+  listMessages,
+  syncFolder as apiSyncFolder,
+  markRead as ipcMarkRead,
+} from "@/ipc/mail";
 import { mockMessages } from "@/lib/mockData";
 
 const PAGE = 50;
@@ -27,15 +31,19 @@ export const useMailStore = create<MailState>((set, get) => ({
 
     set({ loadingFolderId: folderId });
     try {
-      const offset = reset ? 0 : (existing?.length ?? 0);
-      const page = isTauri()
-        ? await listMessages(folderId, offset, PAGE)
-        : (mockMessages[folderId] ?? []);
+      let page: MessageHeader[];
+      if (isTauri()) {
+        // 選択時に IMAP 同期して最新ヘッダを取得。失敗時は DB キャッシュへフォールバック。
+        try {
+          page = await apiSyncFolder(folderId, PAGE);
+        } catch {
+          page = await listMessages(folderId, 0, PAGE);
+        }
+      } else {
+        page = mockMessages[folderId] ?? [];
+      }
       set((s) => ({
-        messagesByFolder: {
-          ...s.messagesByFolder,
-          [folderId]: reset ? page : [...(existing ?? []), ...page],
-        },
+        messagesByFolder: { ...s.messagesByFolder, [folderId]: page },
       }));
     } finally {
       set({ loadingFolderId: null });

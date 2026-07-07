@@ -26,6 +26,14 @@ export function listMessages(
   return invoke<MessageHeader[]>("list_messages", { folderId, offset, limit });
 }
 
+/** フォルダを IMAP から同期し、直近のヘッダ一覧を返す。 */
+export function syncFolder(
+  folderId: number,
+  limit?: number,
+): Promise<MessageHeader[]> {
+  return invoke<MessageHeader[]>("sync_folder", { folderId, limit });
+}
+
 export function getMessage(messageId: number): Promise<MessageFull> {
   return invoke<MessageFull>("get_message", { messageId });
 }
