@@ -4,7 +4,7 @@ use crate::crypto::keychain;
 use crate::error::{AppError, AppResult};
 use crate::imap;
 use crate::state::AppState;
-use crate::store::{self, models::{Folder, MessageHeader}};
+use crate::store::{self, models::{Folder, MessageFull, MessageHeader}};
 
 /// フォルダ一覧(DB キャッシュ)。実データは sync_folders で反映。
 #[tauri::command]
@@ -101,6 +101,57 @@ pub async fn sync_folder(
         store::list_messages(&conn, folder_id, 0, limit as i64)?
     };
     Ok(out)
+}
+
+/// メッセージ本文を取得する(未取得なら IMAP から遅延取得して保存)。
+#[tauri::command]
+pub async fn get_message(state: State<'_, AppState>, message_id: i64) -> AppResult<MessageFull> {
+    let (folder_id, uid, fetched) = {
+        let conn = state.db()?;
+        store::message_locate(&conn, message_id)?.ok_or(AppError::NotFound)?
+    };
+
+    // 既に取得済みなら DB から即返す。
+    if fetched {
+        let conn = state.db()?;
+        return store::get_message_full(&conn, message_id);
+    }
+
+    let info = {
+        let conn = state.db()?;
+        store::folder_sync_info(&conn, folder_id)?.ok_or(AppError::NotFound)?
+    };
+    let pass = keychain::account_password(&info.email)?
+        .ok_or_else(|| AppError::Auth("アプリパスワードが未登録です".into()))?;
+
+    let mut session =
+        imap::client::open_session(&info.imap_host, info.imap_port, &info.email, &pass).await?;
+    let body = imap::fetch::fetch_body(&mut session, &info.imap_path, uid).await?;
+    let _ = imap::client::logout(&mut session).await;
+
+    if let Some(b) = body {
+        let atts: Vec<(String, String, i64, Option<String>)> = b
+            .attachments
+            .iter()
+            .map(|a| (a.filename.clone(), a.mime.clone(), a.size, None))
+            .collect();
+        let conn = state.db()?;
+        store::save_message_body(
+            &conn,
+            message_id,
+            &b.to,
+            &b.cc,
+            &b.message_id,
+            b.in_reply_to.as_deref(),
+            &b.references,
+            b.text.as_deref(),
+            b.html.as_deref(),
+            &atts,
+        )?;
+    }
+
+    let conn = state.db()?;
+    store::get_message_full(&conn, message_id)
 }
 
 /// メッセージヘッダのページング取得(DB キャッシュ)。

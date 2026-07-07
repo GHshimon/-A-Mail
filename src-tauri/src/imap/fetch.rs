@@ -6,7 +6,7 @@
 
 use async_imap::types::Flag;
 use futures::StreamExt;
-use mail_parser::MessageParser;
+use mail_parser::{MessageParser, MimeHeaders};
 
 use super::client::ImapSession;
 use crate::error::{AppError, AppResult};
@@ -89,4 +89,88 @@ pub async fn fetch_recent_headers(
         });
     }
     Ok((uidvalidity, uidnext, out))
+}
+
+/// 添付 1 件のメタ(本体は保存しない)。
+pub struct AttachmentData {
+    pub filename: String,
+    pub mime: String,
+    pub size: i64,
+}
+
+/// 本文(text/html)+ ヘッダ + 添付メタ。
+pub struct BodyData {
+    pub to: Vec<String>,
+    pub cc: Vec<String>,
+    pub message_id: String,
+    pub in_reply_to: Option<String>,
+    pub references: Vec<String>,
+    pub text: Option<String>,
+    pub html: Option<String>,
+    pub attachments: Vec<AttachmentData>,
+}
+
+/// 指定フォルダを SELECT し、UID の本文全体(`BODY.PEEK[]`)を取得・パースする。
+/// `BODY.PEEK` なので \Seen は立たない。
+pub async fn fetch_body(
+    session: &mut ImapSession,
+    mailbox: &str,
+    uid: u32,
+) -> AppResult<Option<BodyData>> {
+    session
+        .select(mailbox)
+        .await
+        .map_err(|_| AppError::Imap("フォルダを開けませんでした".into()))?;
+
+    let mut fetches = session
+        .uid_fetch(uid.to_string(), "BODY.PEEK[]")
+        .await
+        .map_err(|_| AppError::Imap("本文の取得に失敗しました".into()))?;
+
+    let mut result = None;
+    while let Some(item) = fetches.next().await {
+        let f = item.map_err(|_| AppError::Imap("本文の解析に失敗しました".into()))?;
+        let Some(bytes) = f.body() else { continue };
+        let Some(msg) = MessageParser::default().parse(bytes) else {
+            continue;
+        };
+
+        let addr_list = |a: Option<&mail_parser::Address>| -> Vec<String> {
+            a.map(|addr| {
+                addr.iter()
+                    .filter_map(|x| x.address().map(|s| s.to_string()))
+                    .collect()
+            })
+            .unwrap_or_default()
+        };
+        let references: Vec<String> = msg
+            .references()
+            .as_text_list()
+            .map(|v| v.into_iter().map(|s| s.to_string()).collect())
+            .unwrap_or_default();
+        let attachments = msg
+            .attachments()
+            .map(|p| AttachmentData {
+                filename: p.attachment_name().unwrap_or("attachment").to_string(),
+                mime: p
+                    .content_type()
+                    .and_then(|c| c.subtype())
+                    .unwrap_or("octet-stream")
+                    .to_string(),
+                size: p.contents().len() as i64,
+            })
+            .collect();
+
+        result = Some(BodyData {
+            to: addr_list(msg.to()),
+            cc: addr_list(msg.cc()),
+            message_id: msg.message_id().unwrap_or("").to_string(),
+            in_reply_to: msg.in_reply_to().as_text().map(|s| s.to_string()),
+            references,
+            text: msg.body_text(0).map(|c| c.to_string()),
+            html: msg.body_html(0).map(|c| c.to_string()),
+            attachments,
+        });
+    }
+    Ok(result)
 }

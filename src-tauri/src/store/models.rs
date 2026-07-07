@@ -27,6 +27,30 @@ pub struct MessageHeader {
     pub has_attachments: bool,
 }
 
+/// 添付ファイルのメタ情報(本体はまだ保存しない=遅延ダウンロードは後続)。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AttachmentMeta {
+    pub id: i64,
+    pub filename: String,
+    pub mime: String,
+    pub size: i64,
+    pub content_id: Option<String>,
+}
+
+/// 本文表示用のフル DTO(get_message が返す)。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MessageFull {
+    pub header: MessageHeader,
+    pub to: Vec<String>,
+    pub cc: Vec<String>,
+    pub message_id: String,
+    pub in_reply_to: Option<String>,
+    pub references: Vec<String>,
+    pub body_text: Option<String>,
+    pub body_html: Option<String>,
+    pub attachments: Vec<AttachmentMeta>,
+}
+
 /// アプリ設定(値本体=API キー等は含めない。Keychain 管理)。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {

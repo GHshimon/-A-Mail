@@ -8,7 +8,9 @@ use rusqlite::{params, Connection};
 
 use crate::account::{Account, Provider};
 use crate::error::{AppError, AppResult};
-use models::{Folder, MessageHeader, Settings, SettingsPatch};
+use models::{
+    AttachmentMeta, Folder, MessageFull, MessageHeader, Settings, SettingsPatch,
+};
 
 /// 設定(単一行 id=1)を取得。
 pub fn get_settings(conn: &Connection) -> AppResult<Settings> {
@@ -322,6 +324,143 @@ fn now_secs() -> i64 {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs() as i64)
         .unwrap_or(0)
+}
+
+/// メッセージの所在(フォルダ / UID / 本文取得済みか)を引く。
+pub fn message_locate(conn: &Connection, message_id: i64) -> AppResult<Option<(i64, u32, bool)>> {
+    match conn.query_row(
+        "SELECT folder_id, uid, body_fetched FROM messages WHERE id = ?1",
+        [message_id],
+        |r| {
+            Ok((
+                r.get::<_, i64>(0)?,
+                r.get::<_, i64>(1)? as u32,
+                r.get::<_, i64>(2)? != 0,
+            ))
+        },
+    ) {
+        Ok(v) => Ok(Some(v)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(AppError::from(e)),
+    }
+}
+
+/// 取得した本文・宛先・添付を保存し、body_fetched=1 にする。
+#[allow(clippy::too_many_arguments)]
+pub fn save_message_body(
+    conn: &Connection,
+    message_id: i64,
+    to_addrs: &[String],
+    cc_addrs: &[String],
+    message_id_hdr: &str,
+    in_reply_to: Option<&str>,
+    references: &[String],
+    body_text: Option<&str>,
+    body_html: Option<&str>,
+    attachments: &[(String, String, i64, Option<String>)],
+) -> AppResult<()> {
+    let to_json = serde_json::to_string(to_addrs).unwrap_or_else(|_| "[]".into());
+    let cc_json = serde_json::to_string(cc_addrs).unwrap_or_else(|_| "[]".into());
+    let refs = references.join(" ");
+    let has_att = !attachments.is_empty();
+
+    conn.execute(
+        "UPDATE messages SET
+           to_addrs = ?1, cc_addrs = ?2, message_id = ?3, in_reply_to = ?4,
+           reference_ids = ?5, body_text = ?6, body_html = ?7,
+           has_attachments = ?8, body_fetched = 1
+         WHERE id = ?9",
+        params![
+            to_json,
+            cc_json,
+            message_id_hdr,
+            in_reply_to,
+            refs,
+            body_text,
+            body_html,
+            has_att as i64,
+            message_id,
+        ],
+    )?;
+
+    conn.execute("DELETE FROM attachments WHERE message_id = ?1", [message_id])?;
+    for (filename, mime, size, cid) in attachments {
+        conn.execute(
+            "INSERT INTO attachments (message_id, filename, mime, size, content_id)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![message_id, filename, mime, size, cid],
+        )?;
+    }
+    Ok(())
+}
+
+/// 本文込みのフル DTO を組み立てる。
+pub fn get_message_full(conn: &Connection, message_id: i64) -> AppResult<MessageFull> {
+    let (header, to_json, cc_json, msgid, in_reply_to, refs, body_text, body_html) = conn
+        .query_row(
+            "SELECT id, uid, subject, from_addr, date, snippet, flags, has_attachments,
+                    to_addrs, cc_addrs, message_id, in_reply_to, reference_ids, body_text, body_html
+             FROM messages WHERE id = ?1",
+            [message_id],
+            |r| {
+                let flags: i64 = r.get(6)?;
+                let header = MessageHeader {
+                    id: r.get(0)?,
+                    uid: r.get(1)?,
+                    subject: r.get(2)?,
+                    from: r.get(3)?,
+                    date: r.get(4)?,
+                    snippet: r.get(5)?,
+                    seen: (flags & 1) != 0,
+                    flagged: (flags & 2) != 0,
+                    has_attachments: r.get::<_, i64>(7)? != 0,
+                };
+                Ok((
+                    header,
+                    r.get::<_, String>(8)?,
+                    r.get::<_, String>(9)?,
+                    r.get::<_, Option<String>>(10)?,
+                    r.get::<_, Option<String>>(11)?,
+                    r.get::<_, Option<String>>(12)?,
+                    r.get::<_, Option<String>>(13)?,
+                    r.get::<_, Option<String>>(14)?,
+                ))
+            },
+        )?;
+
+    let to: Vec<String> = serde_json::from_str(&to_json).unwrap_or_default();
+    let cc: Vec<String> = serde_json::from_str(&cc_json).unwrap_or_default();
+    let references: Vec<String> = refs
+        .map(|s| s.split_whitespace().map(|x| x.to_string()).collect())
+        .unwrap_or_default();
+
+    let mut stmt = conn.prepare(
+        "SELECT id, filename, mime, size, content_id FROM attachments
+         WHERE message_id = ?1 ORDER BY id",
+    )?;
+    let atts = stmt
+        .query_map([message_id], |r| {
+            Ok(AttachmentMeta {
+                id: r.get(0)?,
+                filename: r.get(1)?,
+                mime: r.get(2)?,
+                size: r.get(3)?,
+                content_id: r.get(4)?,
+            })
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(MessageFull {
+        header,
+        to,
+        cc,
+        message_id: msgid.unwrap_or_default(),
+        in_reply_to,
+        references,
+        body_text,
+        body_html,
+        attachments: atts,
+    })
 }
 
 /// フォルダを upsert(IMAP LIST 反映)。既存は name / role を更新。

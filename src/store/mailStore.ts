@@ -1,9 +1,10 @@
 import { create } from "zustand";
-import type { MessageHeader } from "@/ipc/types";
+import type { MessageFull, MessageHeader } from "@/ipc/types";
 import { isTauri } from "@/ipc/client";
 import {
   listMessages,
   syncFolder as apiSyncFolder,
+  getMessage as apiGetMessage,
   markRead as ipcMarkRead,
 } from "@/ipc/mail";
 import { mockMessages } from "@/lib/mockData";
@@ -15,7 +16,14 @@ interface MailState {
   messagesByFolder: Record<number, MessageHeader[]>;
   loadingFolderId: number | null;
 
+  /** 現在開いているメッセージの本文(get_message の結果)。 */
+  openMessageId: number | null;
+  openMessage: MessageFull | null;
+  loadingMessage: boolean;
+
   fetchMessages: (folderId: number, reset?: boolean) => Promise<void>;
+  /** メッセージ本文を取得して開く(未取得なら IMAP から遅延取得)。 */
+  loadMessage: (messageId: number) => Promise<void>;
   /** 既読状態の楽観更新(失敗時ロールバックは M1 で配線)。 */
   setSeenOptimistic: (folderId: number, messageId: number, seen: boolean) => void;
   markRead: (folderId: number, messageId: number, seen: boolean) => Promise<void>;
@@ -24,6 +32,9 @@ interface MailState {
 export const useMailStore = create<MailState>((set, get) => ({
   messagesByFolder: {},
   loadingFolderId: null,
+  openMessageId: null,
+  openMessage: null,
+  loadingMessage: false,
 
   fetchMessages: async (folderId, reset = false) => {
     const existing = get().messagesByFolder[folderId];
@@ -47,6 +58,21 @@ export const useMailStore = create<MailState>((set, get) => ({
       }));
     } finally {
       set({ loadingFolderId: null });
+    }
+  },
+
+  loadMessage: async (messageId) => {
+    set({ openMessageId: messageId, openMessage: null, loadingMessage: true });
+    try {
+      if (isTauri()) {
+        const full = await apiGetMessage(messageId);
+        // 取得中に別メッセージへ切り替わっていたら破棄(レース対策)。
+        if (get().openMessageId === messageId) set({ openMessage: full });
+      }
+    } catch {
+      /* 本文取得失敗時はヘッダのみ表示にフォールバック */
+    } finally {
+      if (get().openMessageId === messageId) set({ loadingMessage: false });
     }
   },
 

@@ -60,6 +60,7 @@ pub fn run() {
             commands::sync_folder,
             commands::list_folders,
             commands::list_messages,
+            commands::get_message,
             commands::search_messages,
         ])
         .run(tauri::generate_context!())
