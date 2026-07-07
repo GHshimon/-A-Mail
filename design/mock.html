@@ -486,7 +486,12 @@
   function setAI(open){ win.classList.toggle('ai-open',open); aiBtn.classList.toggle('on',open); }
   aiBtn.addEventListener('click',function(){ setAI(!win.classList.contains('ai-open')); });
   aiClose.addEventListener('click',function(){ setAI(false); });
-  aiBtn.classList.toggle('on',win.classList.contains('ai-open'));
+  // AI is a persistent column only on wide screens; on narrow it is an
+  // overlay drawer, so default it CLOSED there (else it covers compose).
+  var mqWide=window.matchMedia('(min-width:1120px)');
+  function applyAIDefault(){ setAI(mqWide.matches); }
+  applyAIDefault();
+  mqWide.addEventListener('change', applyAIDefault);
 
   // nav drawer (phone)
   var navBtn=document.getElementById('navBtn');
