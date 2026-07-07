@@ -53,6 +53,8 @@ pub fn run() {
             commands::set_gemini_key,
             commands::has_gemini_key,
             commands::list_accounts,
+            commands::add_account,
+            commands::remove_account,
             commands::list_folders,
             commands::list_messages,
             commands::search_messages,

@@ -741,3 +741,97 @@ button {
     text-align: center;
   }
 }
+
+/* ===== 設定: アカウント登録フォーム(M1) ===== */
+.settings-pane {
+  padding: 20px 22px;
+  max-width: 460px;
+  overflow-y: auto;
+}
+.settings-pane h2 {
+  margin: 0 0 14px;
+  font-size: 16px;
+}
+.settings-pane .muted {
+  color: var(--ink-3, #8b9099);
+  font-size: 12.5px;
+}
+.account-list {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.account-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--sep, #e2e5ea);
+  border-radius: 9px;
+  font-size: 13px;
+}
+.link-danger {
+  border: none;
+  background: transparent;
+  color: var(--crit, #e5484d);
+  cursor: pointer;
+  font-size: 12.5px;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+.link-danger:hover {
+  background: color-mix(in srgb, var(--crit, #e5484d) 12%, transparent);
+}
+.account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid var(--sep, #e2e5ea);
+  padding-top: 16px;
+}
+.account-form h3 {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-3, #8b9099);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.account-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--ink-2, #5b616b);
+}
+.account-form input,
+.account-form select {
+  font: inherit;
+  font-size: 16px; /* iOS ズーム防止 */
+  color: var(--ink, #1c1e22);
+  background: var(--bg, #eef1f5);
+  border: 1px solid var(--sep-strong, #d4d8df);
+  border-radius: 9px;
+  padding: 9px 11px;
+}
+.account-form input:focus,
+.account-form select:focus {
+  outline: 2px solid var(--accent, #0a6cff);
+  outline-offset: 1px;
+  border-color: var(--accent, #0a6cff);
+}
+.account-form .preset-hint {
+  margin: -6px 0 0;
+}
+.account-form .form-error {
+  margin: 0;
+  color: var(--crit, #e5484d);
+  font-size: 12.5px;
+}
+.account-form .primary[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

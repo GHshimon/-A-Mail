@@ -8,7 +8,7 @@ mod ai_cmd;
 mod mail_cmd;
 mod search_cmd;
 
-pub use account_cmd::list_accounts;
+pub use account_cmd::{add_account, list_accounts, remove_account};
 pub use ai_cmd::{get_settings, has_gemini_key, set_gemini_key, update_settings};
 pub use mail_cmd::{list_folders, list_messages};
 pub use search_cmd::search_messages;

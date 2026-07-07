@@ -4,7 +4,7 @@ pub mod db;
 pub mod migrations;
 pub mod models;
 
-use rusqlite::Connection;
+use rusqlite::{params, Connection};
 
 use crate::account::{Account, Provider};
 use crate::error::{AppError, AppResult};
@@ -149,4 +149,80 @@ pub fn list_messages(
         out.push(m?);
     }
     Ok(out)
+}
+
+/// アカウントを追加(接続設定はプロバイダのプリセットから解決)。
+/// パスワードは保存しない(呼び出し側で Keychain 管理)。
+pub fn insert_account(
+    conn: &Connection,
+    email: &str,
+    provider: Provider,
+    display_name: &str,
+) -> AppResult<Account> {
+    // 重複は分かりやすい入力エラーに変換(UNIQUE 制約より前に判定)。
+    let exists: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM accounts WHERE email = ?1",
+        [email],
+        |r| r.get(0),
+    )?;
+    if exists > 0 {
+        return Err(AppError::BadInput(
+            "このメールアドレスは既に登録済みです".into(),
+        ));
+    }
+
+    let p = provider.preset();
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0);
+
+    conn.execute(
+        "INSERT INTO accounts
+           (email, provider, display_name, imap_host, imap_port,
+            smtp_host, smtp_port, smtp_starttls, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        params![
+            email,
+            provider.as_db_str(),
+            display_name,
+            p.imap_host,
+            p.imap_port,
+            p.smtp_host,
+            p.smtp_port,
+            p.smtp_starttls as i64,
+            now,
+        ],
+    )?;
+
+    Ok(Account {
+        id: conn.last_insert_rowid(),
+        email: email.to_string(),
+        provider,
+        display_name: display_name.to_string(),
+        imap_host: p.imap_host.to_string(),
+        imap_port: p.imap_port,
+        smtp_host: p.smtp_host.to_string(),
+        smtp_port: p.smtp_port,
+        smtp_starttls: p.smtp_starttls,
+    })
+}
+
+/// アカウントのメールアドレスを引く(Keychain 削除用)。
+pub fn account_email(conn: &Connection, account_id: i64) -> AppResult<Option<String>> {
+    match conn.query_row(
+        "SELECT email FROM accounts WHERE id = ?1",
+        [account_id],
+        |r| r.get::<_, String>(0),
+    ) {
+        Ok(email) => Ok(Some(email)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(AppError::from(e)),
+    }
+}
+
+/// アカウント削除(folders / messages は FK の ON DELETE CASCADE で連鎖削除)。
+pub fn delete_account(conn: &Connection, account_id: i64) -> AppResult<()> {
+    conn.execute("DELETE FROM accounts WHERE id = ?1", [account_id])?;
+    Ok(())
 }
