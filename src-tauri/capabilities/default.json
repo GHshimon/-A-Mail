@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "M0 最小権限セット。追加権限(shell/os/notification 等)は必要になった時点で最小限を足す。",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

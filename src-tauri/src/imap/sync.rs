@@ -1,0 +1,1 @@
+//! 初回 / 増分同期(UIDVALIDITY / UIDNEXT / CONDSTORE)。M1 で実装。
