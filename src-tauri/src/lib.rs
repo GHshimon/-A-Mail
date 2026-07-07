@@ -55,6 +55,8 @@ pub fn run() {
             commands::list_accounts,
             commands::add_account,
             commands::remove_account,
+            commands::test_connection,
+            commands::sync_folders,
             commands::list_folders,
             commands::list_messages,
             commands::search_messages,

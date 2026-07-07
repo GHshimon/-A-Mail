@@ -7,7 +7,7 @@ import {
   removeAccount as apiRemoveAccount,
   type AddAccountInput,
 } from "@/ipc/accounts";
-import { listFolders } from "@/ipc/mail";
+import { listFolders, syncFolders as apiSyncFolders } from "@/ipc/mail";
 import { mockAccounts, mockFolders } from "@/lib/mockData";
 
 interface AccountState {
@@ -22,6 +22,8 @@ interface AccountState {
   addAccount: (input: AddAccountInput) => Promise<Account>;
   /** アカウント削除(DB + Keychain)。 */
   removeAccount: (accountId: number) => Promise<void>;
+  /** IMAP からフォルダを取り直して反映(接続あり)。 */
+  refreshFolders: (accountId: number) => Promise<void>;
 }
 
 export const useAccountStore = create<AccountState>((set, get) => ({
@@ -52,8 +54,21 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 
   addAccount: async (input) => {
     const account = await apiAddAccount(input);
+    // 接続してフォルダを取得(失敗しても登録自体は有効なので握りつぶす)。
+    try {
+      await apiSyncFolders(account.id);
+    } catch {
+      /* ネットワーク/認証エラー時は後で「同期」から再試行できる */
+    }
     await get().loadAccounts();
     return account;
+  },
+
+  refreshFolders: async (accountId) => {
+    const folders = await apiSyncFolders(accountId);
+    set((s) => ({
+      foldersByAccount: { ...s.foldersByAccount, [accountId]: folders },
+    }));
   },
 
   removeAccount: async (accountId) => {

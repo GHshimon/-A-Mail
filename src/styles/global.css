@@ -835,3 +835,40 @@ button {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ===== 設定: アカウント行のアクション(M1 接続テスト/同期) ===== */
+.account-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+.account-row-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.account-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.account-actions button {
+  font: inherit;
+  font-size: 12px;
+  border: 1px solid var(--sep-strong, #d4d8df);
+  background: var(--panel, #fff);
+  color: var(--ink, #1c1e22);
+  border-radius: 7px;
+  padding: 5px 9px;
+  cursor: pointer;
+}
+.account-actions button:hover {
+  border-color: var(--accent, #0a6cff);
+}
+.account-actions .link-danger {
+  border-color: transparent;
+}
+.account-status {
+  margin: 0;
+}

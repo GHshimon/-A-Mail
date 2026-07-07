@@ -28,8 +28,13 @@ thiserror = "2"
 # bundled: SQLite/FTS5 のバージョン差異を排除。functions: FTS 補助。
 rusqlite = { version = "0.32", features = ["bundled"] }
 
-# --- 非同期ランタイム(M3 の AI ストリーミング等) ---
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
+# --- 非同期ランタイム(IMAP / M3 の AI ストリーミング等) ---
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "net"] }
+
+# --- IMAP(M1)。native-tls: macOS は Secure Transport を使い openssl 非依存。 ---
+async-imap = { version = "0.10", default-features = false, features = ["runtime-tokio"] }
+async-native-tls = { version = "0.5", default-features = false, features = ["runtime-tokio"] }
+futures = "0.3"
 
 # --- Gemini API 呼び出し(M3)。rustls で system openssl 非依存。 ---
 reqwest = { version = "0.12", default-features = false, features = [

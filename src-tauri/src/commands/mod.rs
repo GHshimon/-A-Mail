@@ -10,5 +10,5 @@ mod search_cmd;
 
 pub use account_cmd::{add_account, list_accounts, remove_account};
 pub use ai_cmd::{get_settings, has_gemini_key, set_gemini_key, update_settings};
-pub use mail_cmd::{list_folders, list_messages};
+pub use mail_cmd::{list_folders, list_messages, sync_folders, test_connection};
 pub use search_cmd::search_messages;

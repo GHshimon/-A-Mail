@@ -226,3 +226,34 @@ pub fn delete_account(conn: &Connection, account_id: i64) -> AppResult<()> {
     conn.execute("DELETE FROM accounts WHERE id = ?1", [account_id])?;
     Ok(())
 }
+
+/// IMAP 接続に必要な情報 (email, imap_host, imap_port) を引く。
+pub fn account_conn(conn: &Connection, account_id: i64) -> AppResult<Option<(String, String, u16)>> {
+    match conn.query_row(
+        "SELECT email, imap_host, imap_port FROM accounts WHERE id = ?1",
+        [account_id],
+        |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, u16>(2)?)),
+    ) {
+        Ok(v) => Ok(Some(v)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(AppError::from(e)),
+    }
+}
+
+/// フォルダを upsert(IMAP LIST 反映)。既存は name / role を更新。
+pub fn upsert_folder(
+    conn: &Connection,
+    account_id: i64,
+    imap_path: &str,
+    name: &str,
+    role: Option<&str>,
+) -> AppResult<()> {
+    conn.execute(
+        "INSERT INTO folders (account_id, name, imap_path, role)
+         VALUES (?1, ?2, ?3, ?4)
+         ON CONFLICT(account_id, imap_path)
+         DO UPDATE SET name = excluded.name, role = excluded.role",
+        params![account_id, name, imap_path, role],
+    )?;
+    Ok(())
+}

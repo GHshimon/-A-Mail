@@ -8,6 +8,16 @@ export function listFolders(accountId: number): Promise<Folder[]> {
   return invoke<Folder[]>("list_folders", { accountId });
 }
 
+/** IMAP へ接続・ログインできるかを検証(フォルダ操作はしない)。 */
+export function testConnection(accountId: number): Promise<void> {
+  return invoke<void>("test_connection", { accountId });
+}
+
+/** IMAP LIST でフォルダを取得し DB に反映、最新の一覧を返す。 */
+export function syncFolders(accountId: number): Promise<Folder[]> {
+  return invoke<Folder[]>("sync_folders", { accountId });
+}
+
 export function listMessages(
   folderId: number,
   offset: number,

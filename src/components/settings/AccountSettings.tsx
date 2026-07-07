@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { useAccountStore } from "@/store/accountStore";
 import { isTauri, IpcError } from "@/ipc/client";
+import { testConnection } from "@/ipc/mail";
 import type { Provider } from "@/ipc/types";
 
 /**
- * アカウント設定: 登録済み一覧 + 追加/削除フォーム。
+ * アカウント設定: 登録済み一覧 + 追加/削除 + 接続テスト/フォルダ同期。
  *
  * メール + アプリパスワードで登録すると、接続設定はプロバイダのプリセットから
  * 解決され、アプリパスワードは Rust 側で Keychain に保存される(DB には残さない)。
- * 実際のログイン検証(IMAP 接続テスト)は後続で `test_connection` に配線する。
+ * 登録時に IMAP へ接続してフォルダ一覧も取得する(失敗時は「同期」で再試行)。
  */
 
 const PRESET_HINT: Record<Provider, string> = {
@@ -16,10 +17,15 @@ const PRESET_HINT: Record<Provider, string> = {
   icloud: "IMAP imap.mail.me.com:993 / SMTP smtp.mail.me.com:587",
 };
 
+function msgOf(err: unknown, fallback: string): string {
+  return err instanceof IpcError ? err.message : fallback;
+}
+
 export function AccountSettings() {
   const accounts = useAccountStore((s) => s.accounts);
   const addAccount = useAccountStore((s) => s.addAccount);
   const removeAccount = useAccountStore((s) => s.removeAccount);
+  const refreshFolders = useAccountStore((s) => s.refreshFolders);
 
   const [email, setEmail] = useState("");
   const [appPassword, setAppPassword] = useState("");
@@ -27,9 +33,13 @@ export function AccountSettings() {
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rowStatus, setRowStatus] = useState<Record<number, string>>({});
 
   const canSubmit =
     email.includes("@") && appPassword.trim().length > 0 && !busy;
+
+  const setStatus = (id: number, text: string) =>
+    setRowStatus((s) => ({ ...s, [id]: text }));
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,9 +55,29 @@ export function AccountSettings() {
       setAppPassword("");
       setDisplayName("");
     } catch (err) {
-      setError(err instanceof IpcError ? err.message : "追加に失敗しました");
+      setError(msgOf(err, "追加に失敗しました"));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const onTest = async (id: number) => {
+    setStatus(id, "接続中…");
+    try {
+      await testConnection(id);
+      setStatus(id, "接続OK ✓");
+    } catch (err) {
+      setStatus(id, msgOf(err, "接続に失敗しました"));
+    }
+  };
+
+  const onSync = async (id: number) => {
+    setStatus(id, "同期中…");
+    try {
+      await refreshFolders(id);
+      setStatus(id, "フォルダを同期しました ✓");
+    } catch (err) {
+      setStatus(id, msgOf(err, "同期に失敗しました"));
     }
   };
 
@@ -57,7 +87,7 @@ export function AccountSettings() {
     try {
       await removeAccount(id);
     } catch (err) {
-      setError(err instanceof IpcError ? err.message : "削除に失敗しました");
+      setError(msgOf(err, "削除に失敗しました"));
     }
   };
 
@@ -70,18 +100,31 @@ export function AccountSettings() {
       ) : (
         <ul className="account-list">
           {accounts.map((a) => (
-            <li key={a.id}>
-              <span>
-                {a.display_name ? `${a.display_name} ` : ""}
-                &lt;{a.email}&gt; · {a.provider}
-              </span>
-              <button
-                type="button"
-                className="link-danger"
-                onClick={() => onRemove(a.id, a.display_name || a.email)}
-              >
-                削除
-              </button>
+            <li key={a.id} className="account-row">
+              <div className="account-row-main">
+                <span>
+                  {a.display_name ? `${a.display_name} ` : ""}
+                  &lt;{a.email}&gt; · {a.provider}
+                </span>
+                <div className="account-actions">
+                  <button type="button" onClick={() => onTest(a.id)}>
+                    接続テスト
+                  </button>
+                  <button type="button" onClick={() => onSync(a.id)}>
+                    同期
+                  </button>
+                  <button
+                    type="button"
+                    className="link-danger"
+                    onClick={() => onRemove(a.id, a.display_name || a.email)}
+                  >
+                    削除
+                  </button>
+                </div>
+              </div>
+              {rowStatus[a.id] && (
+                <p className="muted account-status">{rowStatus[a.id]}</p>
+              )}
             </li>
           ))}
         </ul>
