@@ -117,16 +117,22 @@ const LATEST: i64 = 1;
 
 pub fn apply(conn: &Connection) -> AppResult<()> {
     let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+    if version >= LATEST {
+        return Ok(());
+    }
+
+    // スキーマ適用と user_version 更新を 1 トランザクションに束ねる。
+    // 途中失敗時は tx が drop されてロールバックされ、user_version は据え置き
+    // (次回起動で同じ版を安全に再試行できる)。
+    let tx = conn.unchecked_transaction()?;
 
     if version < 1 {
-        conn.execute_batch(V1)?;
+        tx.execute_batch(V1)?;
     }
+    // 将来: if version < 2 { tx.execute_batch(V2)?; } ...
 
-    // 将来: if version < 2 { conn.execute_batch(V2)?; } ...
-
-    if version < LATEST {
-        // user_version はバインド不可のため直接埋め込む(内部定数のみ)。
-        conn.execute_batch(&format!("PRAGMA user_version = {LATEST};"))?;
-    }
+    // user_version はバインド不可のため直接埋め込む(内部定数のみ)。
+    tx.execute_batch(&format!("PRAGMA user_version = {LATEST};"))?;
+    tx.commit()?;
     Ok(())
 }

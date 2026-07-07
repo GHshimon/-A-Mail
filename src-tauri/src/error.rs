@@ -1,7 +1,13 @@
 //! 統一エラー型。
 //!
-//! 重要: `Display` / `Serialize` にパスワード・API キー・メール本文を絶対に
-//! 含めない。フロントは `kind` で分岐する({kind, message} 形)。
+//! フロントは `kind` で分岐する({kind, message} 形)。`message` はフロントへ
+//! シリアライズされる(adjacently-tagged)ため、**構築サイトの責務**として
+//! パスワード・API キー・メール本文を絶対に `message` へ入れない。
+//!
+//! - 秘密を運ぶ可能性のある変換(`reqwest` / `keyring`)は種別のみの一般化文言に丸める。
+//! - `rusqlite` / `io` / `tauri` は診断のため詳細を透過するが、これらに秘密は含まれない
+//!   (DB パス等の環境情報のみ。個人利用の自分の Mac 上に限る)。
+//! - `Auth` / `Imap` / `Smtp` / `Ai` を手で構築する M1 以降は、資格情報を含めないこと。
 
 #[derive(Debug, thiserror::Error, serde::Serialize)]
 #[serde(tag = "kind", content = "message")]

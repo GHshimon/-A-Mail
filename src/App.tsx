@@ -11,23 +11,29 @@ export default function App() {
 
   const loadAccounts = useAccountStore((s) => s.loadAccounts);
   const accounts = useAccountStore((s) => s.accounts);
+  const foldersByAccount = useAccountStore((s) => s.foldersByAccount);
   const selectAccount = useUiStore((s) => s.selectAccount);
   const selectFolder = useUiStore((s) => s.selectFolder);
+  const selectedFolderId = useUiStore((s) => s.selectedFolderId);
 
-  // 起動時: アカウント/フォルダを読み込み、既定の受信トレイを選択。
+  // 起動時: アカウント/フォルダを読み込む。
   useEffect(() => {
     void loadAccounts();
   }, [loadAccounts]);
 
+  // フォルダが揃った時点で、既定フォルダ(受信トレイ)を一度だけ自動選択する。
+  // folders は実機では IMAP 経由で非同期に届くため foldersByAccount を依存に含める。
+  // 既にユーザーが選択済みなら上書きしない。
   useEffect(() => {
-    if (accounts.length === 0) return;
+    if (selectedFolderId != null) return;
     const first = accounts[0];
-    const inbox = useAccountStore
-      .getState()
-      .foldersByAccount[first.id]?.find((f) => f.role === "inbox");
+    if (!first) return;
+    const folders = foldersByAccount[first.id];
+    if (!folders || folders.length === 0) return;
+    const target = folders.find((f) => f.role === "inbox") ?? folders[0];
     selectAccount(first.id);
-    if (inbox) selectFolder(inbox.id);
-  }, [accounts, selectAccount, selectFolder]);
+    selectFolder(target.id);
+  }, [accounts, foldersByAccount, selectedFolderId, selectAccount, selectFolder]);
 
   return <AppShell />;
 }
