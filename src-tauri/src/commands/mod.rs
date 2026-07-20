@@ -8,9 +8,11 @@ mod ai_cmd;
 mod mail_cmd;
 mod search_cmd;
 
-pub use account_cmd::{add_account, list_accounts, remove_account};
-pub use ai_cmd::{get_settings, has_gemini_key, set_gemini_key, update_settings};
-pub use mail_cmd::{
-    get_message, list_folders, list_messages, sync_folder, sync_folders, test_connection,
-};
-pub use search_cmd::search_messages;
+// glob 再エクスポート必須。`#[tauri::command]` は関数の隣に補助アイテム
+// (`__cmd__x` マクロ / `__tauri_command_name_x`)を生成し、`generate_handler!` は
+// それらを `commands::` 直下から探す。名前指定の `pub use` は関数だけを運び
+// 補助アイテムを取りこぼすため、glob で丸ごと再エクスポートする。
+pub use account_cmd::*;
+pub use ai_cmd::*;
+pub use mail_cmd::*;
+pub use search_cmd::*;
