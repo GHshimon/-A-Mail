@@ -1,0 +1,116 @@
+/*
+ * デザイントークン(色 / フォント / spacing)。
+ * macOS ネイティブ風。design/mock.html の配色を踏襲。
+ *
+ * 既定は prefers-color-scheme に追従。useTheme が :root[data-theme] を
+ * 明示設定した場合はそちらが優先(system 以外の強制テーマ用)。
+ */
+
+:root {
+  /* light 基準 */
+  --wall-1: #cfe0f0;
+  --wall-2: #e7ecf2;
+  --win: #f4f5f7;
+  --panel: #ffffff;
+  --sidebar: rgba(238, 241, 246, 0.72);
+  --list: #fbfcfd;
+  --ink: #1c1e22;
+  --ink-2: #4c525c;
+  --ink-3: #6b7078;
+  --sep: #e2e5ea;
+  --sep-strong: #d4d8df;
+  --accent: #0a6cff;
+  --accent-soft: #e7f0ff;
+  --unread: #0a6cff;
+  --ai: #7b5cff;
+  --ai-2: #b04bff;
+  --ai-soft: #f0ecff;
+  --ghost: #8b90a0;
+  --good: #2e9e57;
+  --warn: #d98a1f;
+  --crit: #e5484d;
+
+  --shadow: 0 24px 70px -20px rgba(20, 33, 61, 0.45),
+    0 6px 18px -10px rgba(20, 33, 61, 0.3);
+
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", Meiryo,
+    system-ui, sans-serif;
+
+  /* サイズ */
+  --ui-fs: 14px;
+  --titlebar-h: 46px;
+  --radius: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --wall-1: #1b2740;
+    --wall-2: #0e1420;
+    --win: #232427;
+    --panel: #1e1f22;
+    --sidebar: rgba(38, 40, 46, 0.66);
+    --list: #202124;
+    --ink: #edeef1;
+    --ink-2: #b2b8c2;
+    --ink-3: #8b909b;
+    --sep: #34363b;
+    --sep-strong: #3d4046;
+    --accent: #2f83ff;
+    --accent-soft: #16345e;
+    --unread: #4a97ff;
+    --ai: #a58bff;
+    --ai-2: #cf7bff;
+    --ai-soft: #2a2547;
+    --ghost: #8a909d;
+    --shadow: 0 30px 80px -18px rgba(0, 0, 0, 0.7),
+      0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* 明示テーマ強制(useTheme が付与)。system 以外の設定で使用。 */
+:root[data-theme="light"] {
+  --wall-1: #cfe0f0;
+  --wall-2: #e7ecf2;
+  --win: #f4f5f7;
+  --panel: #ffffff;
+  --sidebar: rgba(238, 241, 246, 0.72);
+  --list: #fbfcfd;
+  --ink: #1c1e22;
+  --ink-2: #4c525c;
+  --ink-3: #6b7078;
+  --sep: #e2e5ea;
+  --sep-strong: #d4d8df;
+  --accent: #0a6cff;
+  --accent-soft: #e7f0ff;
+  --unread: #0a6cff;
+  --ai: #7b5cff;
+  --ai-2: #b04bff;
+  --ai-soft: #f0ecff;
+  --ghost: #8b90a0;
+  --shadow: 0 24px 70px -20px rgba(20, 33, 61, 0.45),
+    0 6px 18px -10px rgba(20, 33, 61, 0.3);
+}
+
+:root[data-theme="dark"] {
+  --wall-1: #1b2740;
+  --wall-2: #0e1420;
+  --win: #232427;
+  --panel: #1e1f22;
+  --sidebar: rgba(38, 40, 46, 0.66);
+  --list: #202124;
+  --ink: #edeef1;
+  --ink-2: #b2b8c2;
+  --ink-3: #8b909b;
+  --sep: #34363b;
+  --sep-strong: #3d4046;
+  --accent: #2f83ff;
+  --accent-soft: #16345e;
+  --unread: #4a97ff;
+  --ai: #a58bff;
+  --ai-2: #cf7bff;
+  --ai-soft: #2a2547;
+  --ghost: #8a909d;
+  --shadow: 0 30px 80px -18px rgba(0, 0, 0, 0.7),
+    0 8px 24px -12px rgba(0, 0, 0, 0.6);
+}

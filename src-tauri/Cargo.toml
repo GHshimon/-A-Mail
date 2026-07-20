@@ -1,0 +1,71 @@
+[package]
+name = "a-mail"
+version = "0.1.0"
+description = "Gemini 補助つき Mac 用メールクライアント"
+authors = ["shimon"]
+edition = "2021"
+rust-version = "1.77"
+
+# main.rs は薄く、lib.rs の run() を呼ぶだけ(Tauri v2 推奨構成)。
+[lib]
+name = "a_mail_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# --- Tauri v2 本体 ---
+# macos-private-api: transparent ウィンドウ + vibrancy に必須。
+tauri = { version = "2", features = ["macos-private-api"] }
+
+# --- シリアライズ / エラー ---
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+# --- ローカル DB(SQLite + FTS5) ---
+# bundled: SQLite/FTS5 のバージョン差異を排除。functions: FTS 補助。
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# --- 非同期ランタイム(IMAP / M3 の AI ストリーミング等) ---
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "net"] }
+
+# --- IMAP(M1)。native-tls: macOS は Secure Transport を使い openssl 非依存。 ---
+async-imap = { version = "0.10", default-features = false, features = ["runtime-tokio"] }
+async-native-tls = { version = "0.5", default-features = false, features = ["runtime-tokio"] }
+futures = "0.3"
+
+# --- メール MIME パース(件名/差出人/本文の復号。日本語エンコードワード対応)。 ---
+mail-parser = "0.11"
+
+# --- Gemini API 呼び出し(M3)。rustls で system openssl 非依存。 ---
+reqwest = { version = "0.12", default-features = false, features = [
+  "json",
+  "rustls-tls",
+  "stream",
+] }
+
+# --- ログ(秘密情報は載せない) ---
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# --- 認証情報の保管(Keychain 等)。プラットフォーム別バックエンドを選択。 ---
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3", features = ["apple-native"] }
+# 半透明サイドバー(macOS 専用)。
+window-vibrancy = "0.5"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { version = "3", features = ["windows-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3", features = ["sync-secret-service"] }
+
+[profile.release]
+# 小さい .app を目指す(SPEC の軽量方針)。
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
