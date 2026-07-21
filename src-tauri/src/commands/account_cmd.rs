@@ -27,7 +27,9 @@ pub fn add_account(
     display_name: String,
 ) -> AppResult<Account> {
     let email = email.trim().to_string();
-    let app_password = app_password.trim().to_string();
+    // Gmail 等のアプリパスワードは「abcd efgh ijkl mnop」と空白区切りで表示される。
+    // 空白込みで入力されても通るよう、内部を含む全空白を除去する(app pw は英数字のみ)。
+    let app_password: String = app_password.chars().filter(|c| !c.is_whitespace()).collect();
     let display_name = display_name.trim().to_string();
 
     if email.is_empty() || !email.contains('@') {
@@ -38,6 +40,18 @@ pub fn add_account(
     }
 
     let conn = state.db()?;
+
+    // 既存アドレスなら「パスワードの入れ直し」とみなして更新する
+    // (UI に編集画面が無いため、再登録=更新でリカバリできるようにする)。
+    if let Some(existing) = store::account_by_email(&conn, &email)? {
+        keychain::set_account_password(&email, &app_password)?;
+        if !display_name.is_empty() {
+            store::update_account_display_name(&conn, existing.id, &display_name)?;
+        }
+        return store::account_by_email(&conn, &email)?
+            .ok_or(AppError::NotFound);
+    }
+
     let account = store::insert_account(&conn, &email, provider, &display_name)?;
 
     if let Err(e) = keychain::set_account_password(&email, &app_password) {

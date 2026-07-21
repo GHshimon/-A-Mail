@@ -35,7 +35,10 @@ pub async fn open_session(
     // 接続直後のサーバ挨拶(greeting)を読み捨てる。
     let _ = client.read_response().await;
 
-    let session = client.login(user, pass).await.map_err(|(_e, _client)| {
+    let session = client.login(user, pass).await.map_err(|(e, _client)| {
+        // サーバからの実エラー(例: Gmail の "[AUTHENTICATIONFAILED]"/"Application-specific
+        // password required")を診断用にログへ。資格情報は含まれない。フロントには一般化文言のみ。
+        tracing::warn!(error = %e, "IMAP LOGIN 失敗");
         AppError::Auth(
             "ログインに失敗しました(メールアドレスとアプリパスワードを確認してください)".into(),
         )

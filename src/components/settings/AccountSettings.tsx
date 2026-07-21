@@ -81,8 +81,15 @@ export function AccountSettings() {
     }
   };
 
-  const onRemove = async (id: number, label: string) => {
-    if (!confirm(`「${label}」を削除しますか?`)) return;
+  // 2 段階クリックで確認(Tauri WebView では window.confirm が効かないため自前実装)。
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
+
+  const onRemove = async (id: number) => {
+    if (confirmingId !== id) {
+      setConfirmingId(id);
+      return;
+    }
+    setConfirmingId(null);
     setError(null);
     try {
       await removeAccount(id);
@@ -116,9 +123,10 @@ export function AccountSettings() {
                   <button
                     type="button"
                     className="link-danger"
-                    onClick={() => onRemove(a.id, a.display_name || a.email)}
+                    onClick={() => onRemove(a.id)}
+                    onBlur={() => setConfirmingId((c) => (c === a.id ? null : c))}
                   >
-                    削除
+                    {confirmingId === a.id ? "本当に削除?" : "削除"}
                   </button>
                 </div>
               </div>

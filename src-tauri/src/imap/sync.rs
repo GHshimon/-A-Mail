@@ -72,9 +72,12 @@ fn infer_role(path: &str, attrs: &[NameAttribute]) -> Option<&'static str> {
 }
 
 /// パス末尾の要素を表示名とする(区切りは Gmail/iCloud とも `/`)。
+/// メールボックス名は IMAP modified UTF-7 なので、表示用にデコードする
+/// (`imap_path` は SELECT 等で使うため生のまま保持し、ここでは表示名だけ変換)。
 fn display_name(path: &str) -> String {
     if path.eq_ignore_ascii_case("INBOX") {
         return "受信トレイ".to_string();
     }
-    path.rsplit('/').next().unwrap_or(path).trim().to_string()
+    let leaf = path.rsplit('/').next().unwrap_or(path).trim();
+    crate::util::imap_utf7::decode(leaf)
 }
