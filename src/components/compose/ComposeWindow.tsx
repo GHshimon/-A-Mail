@@ -131,9 +131,10 @@ export function ComposeWindow() {
     setStatus({ phase: "sending" });
     try {
       await sendMessage(payload);
-      setStatus({ phase: "sent" });
-      // 送信済み下書きは Rust 側で削除済み。フォームは新規状態へ。
+      // 送信済み下書きは Rust 側で削除済み。フォームを新規状態へ戻してから
+      // 「送信しました」を表示(resetDraft が status を idle に戻すため順序が重要)。
       resetDraft({ accountId: effAccountId });
+      setStatus({ phase: "sent" });
     } catch (err) {
       const message =
         err instanceof IpcError ? err.message || err.kind : "送信に失敗しました";

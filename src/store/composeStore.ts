@@ -82,7 +82,13 @@ export const useComposeStore = create<ComposeState>((set) => ({
   setKind: (kind) => set({ kind }),
   setStatus: (status) => set({ status }),
   resetDraft: (partial) =>
-    set({ draft: { ...emptyDraft, ...partial }, status: { phase: "idle" } }),
+    // 配列は毎回新しい参照にする。emptyDraft の配列を使い回すと ComposeWindow の
+    // [draft.to] 依存 effect が発火せず、宛先ローカル state が消えない
+    // (送信後に宛先が残り、余分なオートセーブが走る)不具合を防ぐ。
+    set({
+      draft: { ...emptyDraft, to: [], cc: [], bcc: [], references: [], ...partial },
+      status: { phase: "idle" },
+    }),
 }));
 
 // ---- ComposeDraft ⇄ IPC ペイロード変換 ----
