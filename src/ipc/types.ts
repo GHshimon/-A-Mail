@@ -136,6 +136,43 @@ export interface DraftHeader {
   updated_at: number;
 }
 
+// ---- AI(M3) ----
+
+/** A: 予測入力の要求。 */
+export interface CompleteReq {
+  account_id: number;
+  subject: string;
+  to: string[];
+  body_prefix: string;
+}
+
+/** B: 関連情報サイドバーの要求。 */
+export interface ContextReq {
+  account_id: number;
+  to: string[];
+  subject: string;
+  body: string;
+}
+
+/** B: 要点 1 項目。category は history/commit/todo(想定外もあり得るので string)。 */
+export interface ContextPoint {
+  category: string;
+  text: string;
+}
+
+/** B: 要点 + 関連過去メール。 */
+export interface ContextResult {
+  points: ContextPoint[];
+  related: MessageHeader[];
+}
+
+/** C: 返信ドラフト生成の要求。 */
+export interface ReplyReq {
+  source_message_id: number;
+  tone?: string;
+  length?: string;
+}
+
 /** Rust の AppError(#[serde(tag = "kind", content = "message")])に対応。 */
 export type AppErrorKind =
   | "Auth"

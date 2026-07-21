@@ -132,6 +132,58 @@ pub struct DraftHeader {
     pub updated_at: i64,
 }
 
+// ---- AI(M3)DTO ----
+
+/// A: 予測入力の要求。
+#[derive(Debug, Clone, Deserialize)]
+pub struct CompleteReq {
+    pub account_id: i64,
+    #[serde(default)]
+    pub subject: String,
+    #[serde(default)]
+    pub to: Vec<String>,
+    /// カーソル直前までの本文。
+    #[serde(default)]
+    pub body_prefix: String,
+}
+
+/// B: 関連情報サイドバーの要求。
+#[derive(Debug, Clone, Deserialize)]
+pub struct ContextReq {
+    pub account_id: i64,
+    #[serde(default)]
+    pub to: Vec<String>,
+    #[serde(default)]
+    pub subject: String,
+    #[serde(default)]
+    pub body: String,
+}
+
+/// B: 要点 1 項目(フロントの category と対応)。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContextPoint {
+    /// history / commit / todo
+    pub category: String,
+    pub text: String,
+}
+
+/// B: 要点 + 関連過去メール。
+#[derive(Debug, Clone, Serialize)]
+pub struct ContextResult {
+    pub points: Vec<ContextPoint>,
+    pub related: Vec<MessageHeader>,
+}
+
+/// C: 返信ドラフト生成の要求。
+#[derive(Debug, Clone, Deserialize)]
+pub struct ReplyReq {
+    pub source_message_id: i64,
+    #[serde(default)]
+    pub tone: Option<String>,
+    #[serde(default)]
+    pub length: Option<String>,
+}
+
 /// 設定の部分更新。未指定フィールドは変更しない。
 #[derive(Debug, Default, Deserialize)]
 pub struct SettingsPatch {

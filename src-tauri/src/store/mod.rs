@@ -625,6 +625,19 @@ pub fn save_message_body(
     Ok(())
 }
 
+/// メッセージ本文テキストのみを引く(AI B/C の入力用。未取得なら None)。
+pub fn message_body_text(conn: &Connection, message_id: i64) -> AppResult<Option<String>> {
+    match conn.query_row(
+        "SELECT body_text FROM messages WHERE id = ?1",
+        [message_id],
+        |r| r.get::<_, Option<String>>(0),
+    ) {
+        Ok(v) => Ok(v),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(AppError::from(e)),
+    }
+}
+
 /// 本文込みのフル DTO を組み立てる。
 pub fn get_message_full(conn: &Connection, message_id: i64) -> AppResult<MessageFull> {
     let (header, to_json, cc_json, msgid, in_reply_to, refs, body_text, body_html) = conn

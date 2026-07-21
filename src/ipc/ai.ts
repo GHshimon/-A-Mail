@@ -1,8 +1,30 @@
 import { invoke } from "./client";
-import type { Settings, SettingsPatch } from "./types";
+import type {
+  CompleteReq,
+  ContextReq,
+  ContextResult,
+  ReplyReq,
+  Settings,
+  SettingsPatch,
+} from "./types";
 
 // AI(Gemini)関連 + 設定 + Keychain キー管理の型付きラッパ。
-// 補完(A)のストリーミングは Tauri Channel を使うため M3 で追加する。
+// M3 は非ストリーミング generateContent。SSE ストリーミングは将来対応。
+
+/** A: 予測入力。カーソル直前までの本文から続きを返す(無効/キー無なら Ai エラー)。 */
+export function aiComplete(req: CompleteReq): Promise<string> {
+  return invoke<string>("ai_complete", { req });
+}
+
+/** B: 関連情報サイドバー(FTS5 → Gemini 要点化)。 */
+export function aiContextSidebar(req: ContextReq): Promise<ContextResult> {
+  return invoke<ContextResult>("ai_context_sidebar", { req });
+}
+
+/** C: 返信ドラフト生成。 */
+export function aiGenerateReply(req: ReplyReq): Promise<string> {
+  return invoke<string>("ai_generate_reply", { req });
+}
 
 export function getSettings(): Promise<Settings> {
   return invoke<Settings>("get_settings");

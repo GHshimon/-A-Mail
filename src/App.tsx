@@ -3,13 +3,32 @@ import { AppShell } from "@/components/layout/AppShell";
 import { useTheme } from "@/hooks/useTheme";
 import { useShortcuts } from "@/hooks/useShortcuts";
 import { useAccountStore } from "@/store/accountStore";
+import { useAiStore } from "@/store/aiStore";
 import { useUiStore } from "@/store/uiStore";
+import { getSettings, hasGeminiKey } from "@/ipc/ai";
+import { isTauri } from "@/ipc/client";
 
 export default function App() {
   useTheme();
   useShortcuts();
 
   const loadAccounts = useAccountStore((s) => s.loadAccounts);
+  const setAiEnabled = useAiStore((s) => s.setAiEnabled);
+  const setHasKey = useAiStore((s) => s.setHasKey);
+
+  // 起動時: AI のオプトイン状態とキー有無を反映(既定は OFF)。
+  useEffect(() => {
+    if (!isTauri()) return;
+    void (async () => {
+      try {
+        const s = await getSettings();
+        setAiEnabled(s.ai_enabled);
+        setHasKey(await hasGeminiKey());
+      } catch {
+        /* 取得失敗時は既定(OFF)のまま */
+      }
+    })();
+  }, [setAiEnabled, setHasKey]);
   const accounts = useAccountStore((s) => s.accounts);
   const foldersByAccount = useAccountStore((s) => s.foldersByAccount);
   const selectAccount = useUiStore((s) => s.selectAccount);

@@ -1,27 +1,28 @@
-import type { RelatedMail } from "@/store/aiStore";
-
-const RELEVANCE_LABEL: Record<RelatedMail["relevance"], string> = {
-  high: "◇ 関連度 高",
-  mid: "◇ 関連度 中",
-  low: "◇ 関連度 低",
-};
+import type { MessageHeader } from "@/ipc/types";
+import { formatListDate } from "@/lib/formatDate";
 
 interface RelatedMailListProps {
-  mails: RelatedMail[];
+  mails: MessageHeader[];
 }
 
-/** B: 関連する過去メール一覧(FTS5 結果を併記)。 */
+/** B: 関連する過去メール一覧(FTS5 結果を rank 順で併記)。 */
 export function RelatedMailList({ mails }: RelatedMailListProps) {
+  if (mails.length === 0) {
+    return (
+      <p className="muted" style={{ fontSize: 12 }}>
+        関連する過去メールは見つかりませんでした。
+      </p>
+    );
+  }
   return (
     <div className="related">
       {mails.map((m) => (
         <div className="rel" key={m.id} tabIndex={0}>
           <div className="rt">
-            <span>{m.subject}</span>
-            <span className="d">{m.date}</span>
+            <span>{m.subject || "(件名なし)"}</span>
+            <span className="d">{formatListDate(m.date)}</span>
           </div>
-          <div className="rs">{m.snippet}</div>
-          <div className="score">{RELEVANCE_LABEL[m.relevance]}</div>
+          <div className="rs">{m.snippet || m.from}</div>
         </div>
       ))}
     </div>

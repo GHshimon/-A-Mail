@@ -2,6 +2,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useComposeStore } from "@/store/composeStore";
 import { useAiStore } from "@/store/aiStore";
 import { useDebouncedCompletion } from "@/hooks/useDebouncedCompletion";
+import { aiComplete } from "@/ipc/ai";
 
 /**
  * 予測入力(A)エディタ: textarea + overlay 方式。
@@ -11,16 +12,20 @@ import { useDebouncedCompletion } from "@/hooks/useDebouncedCompletion";
  * - Tab でゴーストを本文へ確定。Esc / 文字入力でゴースト破棄。
  * - IME 変換中(composition)は補完トリガを止める。
  *
- * M0 は UI 挙動のみ(ゴーストは aiStore のモック値)。実際の Gemini ストリーミング
- * 購読は M3 で useDebouncedCompletion の onTrigger に配線する。
+ * ai_enabled かつキー登録済みのとき、入力停止 300ms で ai_complete を呼び、
+ * 返ってきた続きをゴースト表示する。世代 ID で古い結果を破棄し、A は失敗しても
+ * 静かに諦める(エラートーストは出さない)。
  */
 export function GhostTextEditor() {
   const body = useComposeStore((s) => s.draft.body);
   const setBody = useComposeStore((s) => s.setBody);
 
   const aiEnabled = useAiStore((s) => s.aiEnabled);
+  const hasKey = useAiStore((s) => s.hasKey);
   const ghostText = useAiStore((s) => s.ghostText);
   const clearGhost = useAiStore((s) => s.clearGhost);
+  const setGhostText = useAiStore((s) => s.setGhostText);
+  const bumpGen = useAiStore((s) => s.bumpGen);
 
   const [composing, setComposing] = useState(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -35,13 +40,32 @@ export function GhostTextEditor() {
   }, []);
   useLayoutEffect(syncScroll, [body, ghostText, syncScroll]);
 
-  // M3 で Gemini 補完へ接続する箇所。M0 は no-op(モックのゴーストを維持)。
+  // 入力停止 300ms で Gemini 予測入力を呼ぶ(A)。
   useDebouncedCompletion(
     body,
-    () => {
-      /* TODO(M3): ai_complete を Channel 購読して setGhostText する */
+    async (val) => {
+      const { accountId, subject, to } = useComposeStore.getState().draft;
+      if (accountId == null || !val.trim()) {
+        setGhostText("");
+        return;
+      }
+      const gen = bumpGen();
+      try {
+        const text = await aiComplete({
+          account_id: accountId,
+          subject,
+          to,
+          body_prefix: val,
+        });
+        // 古い世代・本文が変わっていたら破棄。
+        if (useAiStore.getState().requestGen !== gen) return;
+        if (useComposeStore.getState().draft.body !== val) return;
+        setGhostText(text.trim());
+      } catch {
+        // A は体感優先で静かに諦める(次のタイプで再試行)。
+      }
     },
-    { delay: 300, enabled: aiEnabled && !composing },
+    { delay: 300, enabled: aiEnabled && hasKey && !composing },
   );
 
   const confirmGhost = useCallback(() => {
