@@ -6,6 +6,7 @@ import { AccountList } from "@/components/sidebar/AccountList";
 import { MessageList } from "@/components/list/MessageList";
 import { MessageView } from "@/components/reader/MessageView";
 import { ComposeWindow } from "@/components/compose/ComposeWindow";
+import { SettingsView } from "@/components/settings/SettingsView";
 import { AiSidebar } from "@/components/ai/AiSidebar";
 
 /**
@@ -51,7 +52,13 @@ export function AppShell() {
           <MessageList />
         </ResizablePane>
 
-        {mode === "compose" ? <ComposeWindow /> : <MessageView />}
+        {mode === "compose" ? (
+          <ComposeWindow />
+        ) : mode === "settings" ? (
+          <SettingsView />
+        ) : (
+          <MessageView />
+        )}
 
         {showAi && <AiSidebar />}
       </div>

@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import type { ThemePref } from "@/ipc/types";
 
-/** 閲覧 / 作成 の 2 モード。ReaderArea の表示を切り替える。 */
-export type ViewMode = "read" | "compose";
+/** 閲覧 / 作成 / 設定 のモード。ReaderArea の表示を切り替える。 */
+export type ViewMode = "read" | "compose" | "settings";
 
 interface PaneWidths {
   /** サイドバー(アカウント/フォルダ)幅 px */

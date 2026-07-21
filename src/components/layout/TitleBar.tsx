@@ -33,6 +33,13 @@ export function TitleBar() {
         ✦ AI
       </button>
       <button
+        className={`iconbtn${mode === "settings" ? " on" : ""}`}
+        title="設定 (⌘,)"
+        onClick={() => setMode(mode === "settings" ? "read" : "settings")}
+      >
+        ⚙︎
+      </button>
+      <button
         className="primary"
         title="新規作成"
         onClick={() => setMode(mode === "compose" ? "read" : "compose")}

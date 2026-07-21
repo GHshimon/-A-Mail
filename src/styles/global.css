@@ -449,6 +449,46 @@ button {
   font-weight: 500;
 }
 
+/* 作成フィールドの編集用入力(見た目は行に馴染ませる) */
+.field-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  padding: 2px 0;
+  outline: none;
+}
+.field-input::placeholder {
+  color: var(--ink-3);
+}
+
+/* 送信/保存のステータス表示(ツールバー右) */
+.cmp-status {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.cmp-status.ok {
+  color: var(--accent);
+}
+.cmp-status.err {
+  color: #e5484d;
+}
+.primary[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* 本文ビューの返信/転送アクション */
+.msg-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 /* GhostTextEditor: textarea + overlay 方式 */
 .ghost-editor {
   position: relative;
@@ -743,6 +783,10 @@ button {
 }
 
 /* ===== 設定: アカウント登録フォーム(M1) ===== */
+.settings-scroll {
+  flex: 1;
+  overflow-y: auto;
+}
 .settings-pane {
   padding: 20px 22px;
   max-width: 460px;
@@ -812,10 +856,15 @@ button {
   font: inherit;
   font-size: 16px; /* iOS ズーム防止 */
   color: var(--ink, #1c1e22);
-  background: var(--bg, #eef1f5);
+  /* --bg は未定義だったためダークテーマで明るい背景×白文字になり不可視だった。
+     テーマに追従する --panel を使う(light=白 / dark=暗)。 */
+  background: var(--panel, #fff);
   border: 1px solid var(--sep-strong, #d4d8df);
   border-radius: 9px;
   padding: 9px 11px;
+}
+.account-form input::placeholder {
+  color: var(--ink-3, #6b7078);
 }
 .account-form input:focus,
 .account-form select:focus {
