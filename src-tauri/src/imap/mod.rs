@@ -3,3 +3,4 @@
 pub mod client;
 pub mod fetch;
 pub mod sync;
+pub mod write;

@@ -91,6 +91,51 @@ export interface SettingsPatch {
   poll_interval_sec?: number;
 }
 
+/** 送信するメッセージ(send_message の引数)。フィールドは Rust の serde 既定 = snake_case。 */
+export interface OutgoingMessage {
+  account_id: number;
+  to: string[];
+  cc: string[];
+  bcc: string[];
+  subject: string;
+  body_text: string;
+  body_html?: string | null;
+  in_reply_to?: string | null;
+  references: string[];
+  /** 送信成功後に削除する下書き ID。 */
+  draft_id?: number | null;
+}
+
+/** 送信結果。 */
+export interface SentInfo {
+  message_id: string;
+  appended_to_sent: boolean;
+}
+
+/** 下書きの保存入力(save_draft の引数)。`id` があれば更新。 */
+export interface DraftInput {
+  id?: number | null;
+  account_id: number;
+  to: string[];
+  cc: string[];
+  bcc: string[];
+  subject: string;
+  body_text: string;
+  body_html?: string | null;
+  in_reply_to?: string | null;
+  references: string[];
+}
+
+/** 下書き一覧の軽量 DTO。 */
+export interface DraftHeader {
+  id: number;
+  account_id: number;
+  subject: string;
+  to: string[];
+  snippet: string;
+  updated_at: number;
+}
+
 /** Rust の AppError(#[serde(tag = "kind", content = "message")])に対応。 */
 export type AppErrorKind =
   | "Auth"

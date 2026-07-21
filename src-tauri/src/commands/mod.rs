@@ -5,6 +5,7 @@
 
 mod account_cmd;
 mod ai_cmd;
+mod compose_cmd;
 mod mail_cmd;
 mod search_cmd;
 
@@ -14,5 +15,6 @@ mod search_cmd;
 // 補助アイテムを取りこぼすため、glob で丸ごと再エクスポートする。
 pub use account_cmd::*;
 pub use ai_cmd::*;
+pub use compose_cmd::*;
 pub use mail_cmd::*;
 pub use search_cmd::*;

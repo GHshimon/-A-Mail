@@ -62,6 +62,76 @@ pub struct Settings {
     pub poll_interval_sec: i64,
 }
 
+/// 送信するメッセージ(フロント → send_message)。宛先はメールアドレス文字列。
+#[derive(Debug, Clone, Deserialize)]
+pub struct OutgoingMessage {
+    pub account_id: i64,
+    #[serde(default)]
+    pub to: Vec<String>,
+    #[serde(default)]
+    pub cc: Vec<String>,
+    #[serde(default)]
+    pub bcc: Vec<String>,
+    #[serde(default)]
+    pub subject: String,
+    #[serde(default)]
+    pub body_text: String,
+    #[serde(default)]
+    pub body_html: Option<String>,
+    /// 返信元の Message-ID(`<...>`)。
+    #[serde(default)]
+    pub in_reply_to: Option<String>,
+    /// References ヘッダに連ねる Message-ID 群。
+    #[serde(default)]
+    pub references: Vec<String>,
+    /// 送信成功後に削除する下書き ID。
+    #[serde(default)]
+    pub draft_id: Option<i64>,
+}
+
+/// 送信結果。生成した Message-ID を返す(フロントの表示/スレッド用)。
+#[derive(Debug, Clone, Serialize)]
+pub struct SentInfo {
+    pub message_id: String,
+    /// Sent フォルダへ APPEND したか(provider 別に要否が変わる)。
+    pub appended_to_sent: bool,
+}
+
+/// 下書きの保存入力(フロント → save_draft)。`id` があれば更新。
+#[derive(Debug, Clone, Deserialize)]
+pub struct DraftInput {
+    #[serde(default)]
+    pub id: Option<i64>,
+    pub account_id: i64,
+    #[serde(default)]
+    pub to: Vec<String>,
+    #[serde(default)]
+    pub cc: Vec<String>,
+    #[serde(default)]
+    pub bcc: Vec<String>,
+    #[serde(default)]
+    pub subject: String,
+    #[serde(default)]
+    pub body_text: String,
+    #[serde(default)]
+    pub body_html: Option<String>,
+    #[serde(default)]
+    pub in_reply_to: Option<String>,
+    #[serde(default)]
+    pub references: Vec<String>,
+}
+
+/// 下書き一覧の軽量 DTO。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DraftHeader {
+    pub id: i64,
+    pub account_id: i64,
+    pub subject: String,
+    pub to: Vec<String>,
+    pub snippet: String,
+    pub updated_at: i64,
+}
+
 /// 設定の部分更新。未指定フィールドは変更しない。
 #[derive(Debug, Default, Deserialize)]
 pub struct SettingsPatch {

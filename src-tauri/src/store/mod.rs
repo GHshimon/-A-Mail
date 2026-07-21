@@ -9,7 +9,8 @@ use rusqlite::{params, Connection};
 use crate::account::{Account, Provider};
 use crate::error::{AppError, AppResult};
 use models::{
-    AttachmentMeta, Folder, MessageFull, MessageHeader, Settings, SettingsPatch,
+    AttachmentMeta, DraftHeader, DraftInput, Folder, MessageFull, MessageHeader, Settings,
+    SettingsPatch,
 };
 
 /// 設定(単一行 id=1)を取得。
@@ -229,6 +230,47 @@ pub fn delete_account(conn: &Connection, account_id: i64) -> AppResult<()> {
     Ok(())
 }
 
+/// メールアドレスからアカウントを引く(再登録=パスワード更新の判定用)。
+pub fn account_by_email(conn: &Connection, email: &str) -> AppResult<Option<Account>> {
+    match conn.query_row(
+        "SELECT id, email, provider, display_name, imap_host, imap_port,
+                smtp_host, smtp_port, smtp_starttls
+         FROM accounts WHERE email = ?1",
+        [email],
+        |r| {
+            let provider_str: String = r.get(2)?;
+            Ok(Account {
+                id: r.get(0)?,
+                email: r.get(1)?,
+                provider: Provider::from_db_str(&provider_str).unwrap_or(Provider::Gmail),
+                display_name: r.get(3)?,
+                imap_host: r.get(4)?,
+                imap_port: r.get(5)?,
+                smtp_host: r.get(6)?,
+                smtp_port: r.get(7)?,
+                smtp_starttls: r.get::<_, i64>(8)? != 0,
+            })
+        },
+    ) {
+        Ok(a) => Ok(Some(a)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(AppError::from(e)),
+    }
+}
+
+/// 表示名を更新(再登録時に表示名を上書きできるように)。
+pub fn update_account_display_name(
+    conn: &Connection,
+    account_id: i64,
+    display_name: &str,
+) -> AppResult<()> {
+    conn.execute(
+        "UPDATE accounts SET display_name = ?1 WHERE id = ?2",
+        params![display_name, account_id],
+    )?;
+    Ok(())
+}
+
 /// IMAP 接続に必要な情報 (email, imap_host, imap_port) を引く。
 pub fn account_conn(conn: &Connection, account_id: i64) -> AppResult<Option<(String, String, u16)>> {
     match conn.query_row(
@@ -240,6 +282,195 @@ pub fn account_conn(conn: &Connection, account_id: i64) -> AppResult<Option<(Str
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
         Err(e) => Err(AppError::from(e)),
     }
+}
+
+/// SMTP 送信に必要なアカウント情報。
+pub struct SmtpConn {
+    pub email: String,
+    pub display_name: String,
+    pub provider: Provider,
+    pub smtp_host: String,
+    pub smtp_port: u16,
+    pub smtp_starttls: bool,
+}
+
+/// SMTP 送信に必要な情報を引く(パスワードは Keychain 側)。
+pub fn account_smtp_conn(conn: &Connection, account_id: i64) -> AppResult<Option<SmtpConn>> {
+    match conn.query_row(
+        "SELECT email, display_name, provider, smtp_host, smtp_port, smtp_starttls
+         FROM accounts WHERE id = ?1",
+        [account_id],
+        |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, String>(2)?,
+                r.get::<_, String>(3)?,
+                r.get::<_, u16>(4)?,
+                r.get::<_, i64>(5)? != 0,
+            ))
+        },
+    ) {
+        Ok((email, display_name, provider_str, smtp_host, smtp_port, smtp_starttls)) => {
+            Ok(Some(SmtpConn {
+                email,
+                display_name,
+                provider: Provider::from_db_str(&provider_str).unwrap_or(Provider::Gmail),
+                smtp_host,
+                smtp_port,
+                smtp_starttls,
+            }))
+        }
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(AppError::from(e)),
+    }
+}
+
+/// IMAP 操作(APPEND / STORE)の宛先(フォルダ + 接続)。
+pub struct ImapTarget {
+    pub email: String,
+    pub imap_host: String,
+    pub imap_port: u16,
+    pub imap_path: String,
+}
+
+/// アカウントの Sent 相当フォルダ(role='sent')の IMAP ターゲットを引く。
+pub fn sent_folder_target(conn: &Connection, account_id: i64) -> AppResult<Option<ImapTarget>> {
+    match conn.query_row(
+        "SELECT a.email, a.imap_host, a.imap_port, f.imap_path
+         FROM folders f JOIN accounts a ON a.id = f.account_id
+         WHERE f.account_id = ?1 AND f.role = 'sent'
+         ORDER BY f.id LIMIT 1",
+        [account_id],
+        |r| {
+            Ok(ImapTarget {
+                email: r.get(0)?,
+                imap_host: r.get(1)?,
+                imap_port: r.get(2)?,
+                imap_path: r.get(3)?,
+            })
+        },
+    ) {
+        Ok(v) => Ok(Some(v)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(AppError::from(e)),
+    }
+}
+
+/// Message-ID から元メッセージの IMAP ターゲット + UID を引く(\Answered STORE 用)。
+pub fn message_target_by_msgid(
+    conn: &Connection,
+    account_id: i64,
+    msgid: &str,
+) -> AppResult<Option<(ImapTarget, u32)>> {
+    match conn.query_row(
+        "SELECT a.email, a.imap_host, a.imap_port, f.imap_path, m.uid
+         FROM messages m
+         JOIN folders f  ON f.id = m.folder_id
+         JOIN accounts a ON a.id = m.account_id
+         WHERE m.account_id = ?1 AND m.message_id = ?2
+         ORDER BY m.id LIMIT 1",
+        params![account_id, msgid],
+        |r| {
+            Ok((
+                ImapTarget {
+                    email: r.get(0)?,
+                    imap_host: r.get(1)?,
+                    imap_port: r.get(2)?,
+                    imap_path: r.get(3)?,
+                },
+                r.get::<_, i64>(4)? as u32,
+            ))
+        },
+    ) {
+        Ok(v) => Ok(Some(v)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(AppError::from(e)),
+    }
+}
+
+/// 元メッセージ(Message-ID 一致)のローカル flags に \Answered(ビット2)を立てる。
+pub fn mark_answered_local(conn: &Connection, account_id: i64, msgid: &str) -> AppResult<()> {
+    // ビット割当は upsert_message_header と合わせる(0:seen,1:flagged,2:answered)。
+    conn.execute(
+        "UPDATE messages SET flags = flags | 4
+         WHERE account_id = ?1 AND message_id = ?2",
+        params![account_id, msgid],
+    )?;
+    Ok(())
+}
+
+/// 下書きを保存(id あれば更新、無ければ挿入)。draft_id を返す。
+pub fn upsert_draft(conn: &Connection, d: &DraftInput) -> AppResult<i64> {
+    let to_json = serde_json::to_string(&d.to).unwrap_or_else(|_| "[]".into());
+    let cc_json = serde_json::to_string(&d.cc).unwrap_or_else(|_| "[]".into());
+    let bcc_json = serde_json::to_string(&d.bcc).unwrap_or_else(|_| "[]".into());
+    let refs = d.references.join(" ");
+    let now = now_secs();
+
+    match d.id {
+        Some(id) => {
+            let n = conn.execute(
+                "UPDATE drafts SET
+                   account_id = ?1, to_addrs = ?2, cc_addrs = ?3, bcc_addrs = ?4,
+                   subject = ?5, body_text = ?6, body_html = ?7,
+                   in_reply_to = ?8, reference_ids = ?9, updated_at = ?10
+                 WHERE id = ?11",
+                params![
+                    d.account_id, to_json, cc_json, bcc_json, d.subject, d.body_text,
+                    d.body_html, d.in_reply_to, refs, now, id,
+                ],
+            )?;
+            if n == 0 {
+                return Err(AppError::NotFound);
+            }
+            Ok(id)
+        }
+        None => {
+            conn.execute(
+                "INSERT INTO drafts
+                   (account_id, to_addrs, cc_addrs, bcc_addrs, subject, body_text,
+                    body_html, in_reply_to, reference_ids, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                params![
+                    d.account_id, to_json, cc_json, bcc_json, d.subject, d.body_text,
+                    d.body_html, d.in_reply_to, refs, now,
+                ],
+            )?;
+            Ok(conn.last_insert_rowid())
+        }
+    }
+}
+
+/// アカウントの下書き一覧(更新の新しい順)。
+pub fn list_drafts(conn: &Connection, account_id: i64) -> AppResult<Vec<DraftHeader>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, account_id, subject, to_addrs, body_text, updated_at
+         FROM drafts WHERE account_id = ?1 ORDER BY updated_at DESC",
+    )?;
+    let rows = stmt.query_map([account_id], |r| {
+        let to_json: String = r.get(3)?;
+        let body: String = r.get(4)?;
+        Ok(DraftHeader {
+            id: r.get(0)?,
+            account_id: r.get(1)?,
+            subject: r.get(2)?,
+            to: serde_json::from_str(&to_json).unwrap_or_default(),
+            snippet: body.chars().take(80).collect(),
+            updated_at: r.get(5)?,
+        })
+    })?;
+    let mut out = Vec::new();
+    for d in rows {
+        out.push(d?);
+    }
+    Ok(out)
+}
+
+/// 下書きを削除(未存在でも成功扱い)。
+pub fn delete_draft(conn: &Connection, draft_id: i64) -> AppResult<()> {
+    conn.execute("DELETE FROM drafts WHERE id = ?1", [draft_id])?;
+    Ok(())
 }
 
 /// フォルダ同期に必要な情報(account + 接続 + 現在の UIDVALIDITY)。

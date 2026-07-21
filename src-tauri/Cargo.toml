@@ -39,6 +39,18 @@ futures = "0.3"
 # --- メール MIME パース(件名/差出人/本文の復号。日本語エンコードワード対応)。 ---
 mail-parser = "0.11"
 
+# --- SMTP 送信(M2)。async(tokio1)。native-tls: macOS は Secure Transport を使い
+# openssl 非依存(async-native-tls と同系)。builder: MIME 組み立て。 ---
+lettre = { version = "0.11", default-features = false, features = [
+  "builder",
+  "tokio1",
+  "tokio1-native-tls",
+  "smtp-transport",
+] }
+
+# --- Message-ID 生成(M2)。RNG のみ使用。 ---
+uuid = { version = "1", features = ["v4"] }
+
 # --- Gemini API 呼び出し(M3)。rustls で system openssl 非依存。 ---
 reqwest = { version = "0.12", default-features = false, features = [
   "json",

@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { useUiStore } from "@/store/uiStore";
 import { useMailStore } from "@/store/mailStore";
+import { useComposeStore } from "@/store/composeStore";
+import { buildForwardDraft, buildReplyDraft } from "@/lib/replyDraft";
 import { HtmlSandbox } from "./HtmlSandbox";
 import { formatListDate } from "@/lib/formatDate";
 
@@ -15,11 +17,16 @@ import { formatListDate } from "@/lib/formatDate";
 export function MessageView() {
   const folderId = useUiStore((s) => s.selectedFolderId);
   const messageId = useUiStore((s) => s.selectedMessageId);
+  const accountId = useUiStore((s) => s.selectedAccountId);
+  const setMode = useUiStore((s) => s.setMode);
 
   const messagesByFolder = useMailStore((s) => s.messagesByFolder);
   const openMessage = useMailStore((s) => s.openMessage);
   const loadingMessage = useMailStore((s) => s.loadingMessage);
   const loadMessage = useMailStore((s) => s.loadMessage);
+
+  const resetDraft = useComposeStore((s) => s.resetDraft);
+  const setKind = useComposeStore((s) => s.setKind);
 
   useEffect(() => {
     if (messageId != null) void loadMessage(messageId);
@@ -66,6 +73,35 @@ export function MessageView() {
                 📎 {a.filename}
               </span>
             ))}
+          </div>
+        )}
+
+        {full && (
+          <div className="msg-actions">
+            <button
+              className="iconbtn"
+              disabled={accountId == null}
+              onClick={() => {
+                if (accountId == null) return;
+                resetDraft(buildReplyDraft(full, accountId));
+                setKind("reply");
+                setMode("compose");
+              }}
+            >
+              ↩︎ 返信
+            </button>
+            <button
+              className="iconbtn"
+              disabled={accountId == null}
+              onClick={() => {
+                if (accountId == null) return;
+                resetDraft(buildForwardDraft(full, accountId));
+                setKind("forward");
+                setMode("compose");
+              }}
+            >
+              ➡︎ 転送
+            </button>
           </div>
         )}
       </div>
