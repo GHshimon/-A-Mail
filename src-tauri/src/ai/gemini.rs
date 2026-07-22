@@ -85,8 +85,10 @@ pub async fn generate_content(
 
     let status = resp.status();
     if !status.is_success() {
-        // 応答本文はプロンプトを含み得るため載せない。ステータスのみ。
-        tracing::warn!(status = status.as_u16(), "Gemini API エラー応答");
+        // エラー応答本文は Google のエラー種別(例: API_KEY_INVALID / model not found)で
+        // ユーザー本文やキーは含まれない。診断のため種別のみログ出力する。
+        let body = resp.text().await.unwrap_or_default();
+        tracing::warn!(status = status.as_u16(), detail = %body, "Gemini API エラー応答");
         let msg = match status.as_u16() {
             401 | 403 => "API キーが無効か権限がありません",
             429 => "レート制限に達しました。しばらく待って再試行してください",

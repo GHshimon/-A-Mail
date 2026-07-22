@@ -105,15 +105,22 @@ CREATE TABLE settings (
   ai_enabled             INTEGER NOT NULL DEFAULT 0,
   ai_scope_related_count INTEGER NOT NULL DEFAULT 5,
   ai_send_body           INTEGER NOT NULL DEFAULT 1,
-  model                  TEXT    NOT NULL DEFAULT 'gemini-2.5-flash',
+  model                  TEXT    NOT NULL DEFAULT 'gemini-flash-latest',
   theme                  TEXT    NOT NULL DEFAULT 'system',
   poll_interval_sec      INTEGER NOT NULL DEFAULT 120
 );
 INSERT OR IGNORE INTO settings (id) VALUES (1);
 "#;
 
+/// v2: 既定モデルを更新。`gemini-2.5-flash` は新規ユーザー/キーへ提供終了となり
+/// 404("no longer available to new users")を返すため、`gemini-flash-latest`
+/// (常に最新の flash を指すエイリアス)へ差し替える。既存インストールの行も更新。
+const V2: &str = r#"
+UPDATE settings SET model = 'gemini-flash-latest' WHERE model = 'gemini-2.5-flash';
+"#;
+
 /// 現在のスキーマ版。マイグレーションを追加したらインクリメントする。
-const LATEST: i64 = 1;
+const LATEST: i64 = 2;
 
 pub fn apply(conn: &Connection) -> AppResult<()> {
     let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
@@ -129,7 +136,9 @@ pub fn apply(conn: &Connection) -> AppResult<()> {
     if version < 1 {
         tx.execute_batch(V1)?;
     }
-    // 将来: if version < 2 { tx.execute_batch(V2)?; } ...
+    if version < 2 {
+        tx.execute_batch(V2)?;
+    }
 
     // user_version はバインド不可のため直接埋め込む(内部定数のみ)。
     tx.execute_batch(&format!("PRAGMA user_version = {LATEST};"))?;

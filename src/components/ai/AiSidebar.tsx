@@ -37,7 +37,7 @@ export function AiSidebar() {
   const bodyLen = useComposeStore((s) => s.draft.body.length);
 
   const toggleAi = useUiStore((s) => s.toggleAi);
-  const model = "Gemini 2.5 Flash";
+  const model = "Gemini Flash";
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
