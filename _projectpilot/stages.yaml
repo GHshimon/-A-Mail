@@ -1,0 +1,90 @@
+schemaVersion: 1
+stages:
+  - id: S0
+    order: 0
+    name: Seed / 企画の種
+    shortName: 企画の種
+    purpose: 困りごと、着想、期待を一枚の企画の種へ整える。
+    artifact: Seed Brief
+    completionCriteria:
+      - 課題が言語化されている
+      - 仮の利用者が記録されている
+      - 未確認事項が分離されている
+  - id: S1
+    order: 1
+    name: Concept / 企画
+    shortName: 企画
+    purpose: 企画を関係者が検討できる形に育てる。
+    artifact: 企画書 v0.x
+    completionCriteria:
+      - 背景と提供価値がある
+      - MVP範囲がある
+      - リスクがレビュー済み
+  - id: S2
+    order: 2
+    name: Direction / ゴール像
+    shortName: ゴール像
+    purpose: 体験と表現の方向性を比較して選ぶ。
+    artifact: Direction Brief
+    completionCriteria:
+      - 複数案を比較した
+      - 採用理由を記録した
+      - 非採用理由を記録した
+  - id: S3
+    order: 3
+    name: Prototype / モック
+    shortName: モック
+    purpose: 利用像を触れられる形で確かめる。
+    artifact: 画面・コンテンツモック
+    completionCriteria:
+      - 主要フローを試せる
+      - 利用者代理レビューが完了した
+  - id: S4
+    order: 4
+    name: Product Spec / 製品仕様
+    shortName: 製品仕様
+    purpose: 何を作るかを、例外と受入条件まで定義する。
+    artifact: 製品仕様書
+    completionCriteria:
+      - 機能と状態が定義済み
+      - 例外と権限が定義済み
+      - 受入条件が定義済み
+  - id: S5
+    order: 5
+    name: Technical Design / 技術設計
+    shortName: 技術設計
+    purpose: 安全に実装する方法を決める。
+    artifact: 技術設計書
+    completionCriteria:
+      - 構成とデータが定義済み
+      - 安全策が定義済み
+      - テスト戦略がレビュー済み
+  - id: S6
+    order: 6
+    name: Build / 実装
+    shortName: 実装
+    purpose: 承認済み仕様を動作する形へ変える。
+    artifact: 動作するビルド
+    completionCriteria:
+      - 必須機能が実装済み
+      - 静的・自動テストを通過した
+  - id: S7
+    order: 7
+    name: Validate / 検証
+    shortName: 検証
+    purpose: 実際の環境と利用方法で成立性を確認する。
+    artifact: 検証報告書
+    completionCriteria:
+      - UI操作を確認した
+      - 実機・実AIを確認した
+      - 失敗系と回帰を確認した
+  - id: S8
+    order: 8
+    name: Release / リリース
+    shortName: リリース
+    purpose: 残リスクを理解した上で公開可否を決める。
+    artifact: リリース候補・記録
+    completionCriteria:
+      - 必須レビューが完了した
+      - 残リスクを承認した
+      - オーナーが最終承認した

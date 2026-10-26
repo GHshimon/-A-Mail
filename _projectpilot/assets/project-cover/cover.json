@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "assetId": "project-cover",
+  "sourcePath": null,
+  "alt": "A-mailのプロジェクトカバー",
+  "focalPoint": {
+    "x": 0.5,
+    "y": 0.45
+  },
+  "source": {
+    "kind": "unknown",
+    "label": "画像未設定"
+  },
+  "approval": {
+    "status": "unconfirmed",
+    "note": "実画像が設定されるまではProjectPilot固有のフォールバックを使用します。"
+  },
+  "variants": {
+    "hero": {
+      "relativePath": null,
+      "width": 1600,
+      "height": 600,
+      "sha256": null
+    },
+    "card": {
+      "relativePath": null,
+      "width": 800,
+      "height": 600,
+      "sha256": null
+    },
+    "thumb": {
+      "relativePath": null,
+      "width": 320,
+      "height": 240,
+      "sha256": null
+    }
+  },
+  "originalSha256": null,
+  "fallback": {
+    "kind": "projectpilot_default",
+    "theme": "simple-project-flow"
+  },
+  "updatedAt": "2026-09-13T08:41:03.214Z"
+}

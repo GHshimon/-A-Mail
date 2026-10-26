@@ -1,0 +1,50 @@
+schemaVersion: 1
+files:
+  - relativePath: .ai/CLAUDE_INTEGRATION_AUDIT.md
+    role: reference
+    canonical: false
+    sha256: ec69aa5d78ecaac433bc8addd86af38d78d5cbb79dda4120a241267a1cba254b
+    size: 27741
+    modifiedAt: 2026-09-12T00:24:53.163Z
+  - relativePath: .ai/REQUEST_codex_01_ai_truncation.md
+    role: reference
+    canonical: false
+    sha256: a6811dbae31382e006a6af82ff9af2d82cbec7af3296bf3af00e5323fbd97823
+    size: 8311
+    modifiedAt: 2026-09-12T01:53:20.448Z
+  - relativePath: .ai/TASKS.md
+    role: reference
+    canonical: false
+    sha256: 628e50246e50dc3786783a5aa15d9a801816e1a6ec9ff88fd08c0b5741295468
+    size: 5188
+    modifiedAt: 2026-09-12T01:54:03.185Z
+  - relativePath: .claude/worktrees/goal-skill-implementation-b80806/AGENTS.md
+    role: agent_entry
+    canonical: false
+    sha256: 948051098022c5d4ed6137582a677fdade6ea16127ac391940eb4dd8de077567
+    size: 4850
+    modifiedAt: 2026-09-09T10:42:20.845Z
+  - relativePath: .claude/worktrees/goal-skill-implementation-b80806/CLAUDE.md
+    role: agent_entry
+    canonical: false
+    sha256: 023ced1a07642c67257efc58bfe2bc9e8efb51b3752b0a50e1b4f8f8640796bb
+    size: 507
+    modifiedAt: 2026-09-09T10:43:01.328Z
+  - relativePath: .claude/worktrees/goal-skill-implementation-b80806/IMPLEMENTATION.md
+    role: reference
+    canonical: false
+    sha256: 4fd2155f526f2639fb5cd4b57b36ea81e8cc69e6a13607e943a9aa349af40ad3
+    size: 40139
+    modifiedAt: 2026-09-05T10:46:17.543Z
+  - relativePath: .claude/worktrees/goal-skill-implementation-b80806/README.md
+    role: canonical
+    canonical: true
+    sha256: cf0b8bf7df6fd19e21ab2d5ab35a8962683176c9740f15b78108f51ac9e8cbf9
+    size: 4201
+    modifiedAt: 2026-09-07T04:19:29.152Z
+  - relativePath: .claude/worktrees/goal-skill-implementation-b80806/SPEC.md
+    role: canonical
+    canonical: true
+    sha256: 4956fb442ed19b2c3b0fe353ed3209d264ed3ba940646e1795009f3c80bbebbb
+    size: 14047
+    modifiedAt: 2026-09-05T10:46:17.543Z

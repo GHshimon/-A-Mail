@@ -1,0 +1,92 @@
+schemaVersion: 1
+recipes:
+  - id: s0-seed-brief
+    version: 1
+    stageId: S0
+    title: Seed Briefを整える
+    summary: 登録資料から企画の種を一枚にまとめます。
+    status: active
+    permission: draft
+    runnerRole: planning-lead
+    reviewerRoles:
+      - critical-reviewer
+      - user-advocate
+    successCriteria:
+      - 観測事実・提案・未確認を分離する
+      - 既存成果物を上書きしない
+      - 次の判断材料を明記する
+  - id: s0-open-questions
+    version: 1
+    stageId: S0
+    title: 不足情報を洗い出す
+    summary: 判断を変える未確認事項を優先順に整理します。
+    status: active
+    permission: draft
+    runnerRole: planning-lead
+    reviewerRoles:
+      - feasibility-reviewer
+      - user-advocate
+    successCriteria:
+      - 観測事実・提案・未確認を分離する
+      - 既存成果物を上書きしない
+      - 次の判断材料を明記する
+  - id: s0-boundaries
+    version: 1
+    stageId: S0
+    title: やらないことを決める
+    summary: MVPの外側と禁止事項を下書きします。
+    status: active
+    permission: draft
+    runnerRole: planning-lead
+    reviewerRoles:
+      - critical-reviewer
+      - feasibility-reviewer
+    successCriteria:
+      - 観測事実・提案・未確認を分離する
+      - 既存成果物を上書きしない
+      - 次の判断材料を明記する
+  - id: s1-plan-v01
+    version: 1
+    stageId: S1
+    title: 企画書 v0.1を作る
+    summary: 背景、利用者、価値、MVP、リスクを構造化します。
+    status: active
+    permission: draft
+    runnerRole: planning-lead
+    reviewerRoles:
+      - critical-reviewer
+      - user-advocate
+    successCriteria:
+      - 観測事実・提案・未確認を分離する
+      - 既存成果物を上書きしない
+      - 次の判断材料を明記する
+  - id: s1-challenge
+    version: 1
+    stageId: S1
+    title: 反対意見で検証する
+    summary: 弱い仮定と失敗条件を独立した視点で検証します。
+    status: active
+    permission: draft
+    runnerRole: critical-reviewer
+    reviewerRoles:
+      - planning-lead
+      - feasibility-reviewer
+    successCriteria:
+      - 観測事実・提案・未確認を分離する
+      - 既存成果物を上書きしない
+      - 次の判断材料を明記する
+  - id: s1-narrow-mvp
+    version: 1
+    stageId: S1
+    title: MVPを絞る
+    summary: 価値を損なわない最小範囲を提案します。
+    status: active
+    permission: draft
+    runnerRole: product-owner-proxy
+    reviewerRoles:
+      - user-advocate
+      - feasibility-reviewer
+    successCriteria:
+      - 観測事実・提案・未確認を分離する
+      - 既存成果物を上書きしない
+      - 次の判断材料を明記する

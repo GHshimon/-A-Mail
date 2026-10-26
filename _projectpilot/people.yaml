@@ -1,0 +1,21 @@
+schemaVersion: 1
+owner:
+  id: owner
+  label: プロジェクトオーナー
+  kind: human
+roles:
+  - id: planning-lead
+    label: 企画責任者
+    runnerId: codex
+  - id: critical-reviewer
+    label: 批判的レビュアー
+    runnerId: claude
+  - id: user-advocate
+    label: 利用者代理
+    runnerId: codex
+  - id: feasibility-reviewer
+    label: 実現性担当
+    runnerId: claude
+  - id: product-owner-proxy
+    label: 製品責任者代理
+    runnerId: codex

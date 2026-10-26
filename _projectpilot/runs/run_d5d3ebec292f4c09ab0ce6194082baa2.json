@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "id": "run_d5d3ebec292f4c09ab0ce6194082baa2",
+  "projectId": "project_1a93583cf2a94908b39491614b4a929d",
+  "recipeId": "s0-seed-brief",
+  "recipeVersion": 1,
+  "stageId": "S0",
+  "runnerId": "codex",
+  "runnerKind": "live",
+  "usage": {
+    "source": "run",
+    "measured": true,
+    "tokens": 293398,
+    "note": "Codex実行で返されたtoken数"
+  },
+  "artifactCategory": "document",
+  "changeReason": "レシピ「Seed Briefを整える」をCodexで実行し、承認前の下書きを作成",
+  "status": "completed",
+  "baseRevision": 0,
+  "inputFiles": [
+    {
+      "relativePath": ".ai/CLAUDE_INTEGRATION_AUDIT.md",
+      "sha256": "ec69aa5d78ecaac433bc8addd86af38d78d5cbb79dda4120a241267a1cba254b"
+    },
+    {
+      "relativePath": ".ai/REQUEST_codex_01_ai_truncation.md",
+      "sha256": "a6811dbae31382e006a6af82ff9af2d82cbec7af3296bf3af00e5323fbd97823"
+    },
+    {
+      "relativePath": ".ai/TASKS.md",
+      "sha256": "628e50246e50dc3786783a5aa15d9a801816e1a6ec9ff88fd08c0b5741295468"
+    },
+    {
+      "relativePath": ".claude/worktrees/goal-skill-implementation-b80806/AGENTS.md",
+      "sha256": "948051098022c5d4ed6137582a677fdade6ea16127ac391940eb4dd8de077567"
+    },
+    {
+      "relativePath": ".claude/worktrees/goal-skill-implementation-b80806/CLAUDE.md",
+      "sha256": "023ced1a07642c67257efc58bfe2bc9e8efb51b3752b0a50e1b4f8f8640796bb"
+    },
+    {
+      "relativePath": ".claude/worktrees/goal-skill-implementation-b80806/IMPLEMENTATION.md",
+      "sha256": "4fd2155f526f2639fb5cd4b57b36ea81e8cc69e6a13607e943a9aa349af40ad3"
+    },
+    {
+      "relativePath": ".claude/worktrees/goal-skill-implementation-b80806/README.md",
+      "sha256": "cf0b8bf7df6fd19e21ab2d5ab35a8962683176c9740f15b78108f51ac9e8cbf9"
+    },
+    {
+      "relativePath": ".claude/worktrees/goal-skill-implementation-b80806/SPEC.md",
+      "sha256": "4956fb442ed19b2c3b0fe353ed3209d264ed3ba940646e1795009f3c80bbebbb"
+    }
+  ],
+  "draftPath": "_projectpilot/drafts/run_d5d3ebec292f4c09ab0ce6194082baa2/result.md",
+  "draftSha256": "07ef09d8465d98318b707a169bc30f1f52944acd4f10b6ee54d70a582127b0ea",
+  "createdAt": "2026-09-13T08:44:00.056Z",
+  "completedAt": "2026-09-13T08:44:00.056Z"
+}
