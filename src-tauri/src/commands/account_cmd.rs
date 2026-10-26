@@ -29,7 +29,10 @@ pub fn add_account(
     let email = email.trim().to_string();
     // Gmail 等のアプリパスワードは「abcd efgh ijkl mnop」と空白区切りで表示される。
     // 空白込みで入力されても通るよう、内部を含む全空白を除去する(app pw は英数字のみ)。
-    let app_password: String = app_password.chars().filter(|c| !c.is_whitespace()).collect();
+    let app_password: String = app_password
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect();
     let display_name = display_name.trim().to_string();
 
     if email.is_empty() || !email.contains('@') {
@@ -48,8 +51,7 @@ pub fn add_account(
         if !display_name.is_empty() {
             store::update_account_display_name(&conn, existing.id, &display_name)?;
         }
-        return store::account_by_email(&conn, &email)?
-            .ok_or(AppError::NotFound);
+        return store::account_by_email(&conn, &email)?.ok_or(AppError::NotFound);
     }
 
     let account = store::insert_account(&conn, &email, provider, &display_name)?;

@@ -22,11 +22,7 @@ pub async fn append_to_sent(
 }
 
 /// 元メッセージ(UID)へ `\Answered` を立てる(返信時)。
-pub async fn set_answered(
-    session: &mut ImapSession,
-    mailbox: &str,
-    uid: u32,
-) -> AppResult<()> {
+pub async fn set_answered(session: &mut ImapSession, mailbox: &str, uid: u32) -> AppResult<()> {
     session
         .select(mailbox)
         .await

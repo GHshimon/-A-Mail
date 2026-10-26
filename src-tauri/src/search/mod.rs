@@ -42,23 +42,20 @@ pub fn search_messages(
          ORDER BY rank
          LIMIT ?3",
     )?;
-    let rows = stmt.query_map(
-        rusqlite::params![match_expr, account_id, limit],
-        |r| {
-            let flags: i64 = r.get(6)?;
-            Ok(MessageHeader {
-                id: r.get(0)?,
-                uid: r.get(1)?,
-                subject: r.get(2)?,
-                from: r.get(3)?,
-                date: r.get(4)?,
-                snippet: r.get(5)?,
-                seen: (flags & 1) != 0,
-                flagged: (flags & 2) != 0,
-                has_attachments: r.get::<_, i64>(7)? != 0,
-            })
-        },
-    )?;
+    let rows = stmt.query_map(rusqlite::params![match_expr, account_id, limit], |r| {
+        let flags: i64 = r.get(6)?;
+        Ok(MessageHeader {
+            id: r.get(0)?,
+            uid: r.get(1)?,
+            subject: r.get(2)?,
+            from: r.get(3)?,
+            date: r.get(4)?,
+            snippet: r.get(5)?,
+            seen: (flags & 1) != 0,
+            flagged: (flags & 2) != 0,
+            has_attachments: r.get::<_, i64>(7)? != 0,
+        })
+    })?;
     let mut out = Vec::new();
     for m in rows {
         out.push(m?);

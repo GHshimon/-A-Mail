@@ -14,12 +14,7 @@ use crate::error::{AppError, AppResult};
 pub type ImapSession = Session<TlsStream<TcpStream>>;
 
 /// TLS(993)で接続し、LOGIN(アプリパスワード)まで済ませたセッションを返す。
-pub async fn open_session(
-    host: &str,
-    port: u16,
-    user: &str,
-    pass: &str,
-) -> AppResult<ImapSession> {
+pub async fn open_session(host: &str, port: u16, user: &str, pass: &str) -> AppResult<ImapSession> {
     // ここでは `?`(From<io::Error>=Db)を使わず、種別を明示的に対応づける。
     let tcp = TcpStream::connect((host, port))
         .await

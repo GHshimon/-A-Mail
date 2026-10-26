@@ -56,7 +56,10 @@ fn decode_b64_utf16(chunk: &str) -> Option<String> {
     if chunk.is_empty() {
         return None;
     }
-    let standard: String = chunk.chars().map(|c| if c == ',' { '/' } else { c }).collect();
+    let standard: String = chunk
+        .chars()
+        .map(|c| if c == ',' { '/' } else { c })
+        .collect();
     let bytes = base64_decode(&standard)?;
     if bytes.len() % 2 != 0 {
         return None;
@@ -106,7 +109,10 @@ mod tests {
     fn decodes_gmail_japanese_folders() {
         assert_eq!(decode("&MLQw33ux-"), "ゴミ箱");
         assert_eq!(decode("&Tgtm+DBN-"), "下書き");
-        assert_eq!(decode("[Gmail]/&kAFP4W4IMH8w4TD8MOs-"), "[Gmail]/送信済みメール");
+        assert_eq!(
+            decode("[Gmail]/&kAFP4W4IMH8w4TD8MOs-"),
+            "[Gmail]/送信済みメール"
+        );
     }
 
     #[test]

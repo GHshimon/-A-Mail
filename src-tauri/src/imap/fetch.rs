@@ -30,6 +30,22 @@ pub async fn fetch_recent_headers(
     mailbox: &str,
     limit: u32,
 ) -> AppResult<(i64, i64, Vec<HeaderRow>)> {
+    let (uidvalidity, uidnext, rows, _) = fetch_headers_page(session, mailbox, 0, limit).await?;
+    Ok((uidvalidity, uidnext, rows))
+}
+
+/// フォルダを SELECT し、新しい順に `skip_newest` 件を飛ばした先の `limit` 件を取得する。
+///
+/// 一覧の「さらに読み込む」で過去へ遡るための入口。IMAP のシーケンス番号は
+/// 「1 が最古・EXISTS が最新」なので、新しい方から数えて窓を切り出す。
+/// 返り値: (UIDVALIDITY, UIDNEXT, ヘッダ列, EXISTS)。EXISTS はフォルダの総件数で、
+/// 呼び出し側が「これ以上遡れるか」を判断するのに使う。
+pub async fn fetch_headers_page(
+    session: &mut ImapSession,
+    mailbox: &str,
+    skip_newest: u32,
+    limit: u32,
+) -> AppResult<(i64, i64, Vec<HeaderRow>, u32)> {
     let mb = session
         .select(mailbox)
         .await
@@ -39,13 +55,14 @@ pub async fn fetch_recent_headers(
     let exists = mb.exists;
 
     let mut out = Vec::new();
-    if exists == 0 {
-        return Ok((uidvalidity, uidnext, out));
+    // 窓の末尾(最新側)。skip_newest がフォルダ件数を超えていれば、もう遡る先はない。
+    let end = exists.saturating_sub(skip_newest);
+    if exists == 0 || end == 0 || limit == 0 {
+        return Ok((uidvalidity, uidnext, out, exists));
     }
 
-    // 直近 limit 件をシーケンス範囲で取得(UID も同時に得る)。
-    let start = exists.saturating_sub(limit.saturating_sub(1)).max(1);
-    let range = format!("{start}:{exists}");
+    let start = end.saturating_sub(limit.saturating_sub(1)).max(1);
+    let range = format!("{start}:{end}");
 
     let mut fetches = session
         .fetch(range, "(UID FLAGS INTERNALDATE BODY.PEEK[HEADER])")
@@ -88,7 +105,7 @@ pub async fn fetch_recent_headers(
             flagged,
         });
     }
-    Ok((uidvalidity, uidnext, out))
+    Ok((uidvalidity, uidnext, out, exists))
 }
 
 /// 添付 1 件のメタ(本体は保存しない)。
