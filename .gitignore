@@ -33,3 +33,6 @@ src-tauri/gen/
 # --- App local data (dev) ---
 *.sqlite
 *.sqlite-*
+.kangentic/
+.claude/settings.local.json
+kangentic.local.json
