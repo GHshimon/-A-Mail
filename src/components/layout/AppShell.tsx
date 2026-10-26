@@ -28,7 +28,7 @@ export function AppShell() {
   const shellStyle = {
     "--col-nav": `${nav}px`,
     "--col-list": `${list}px`,
-    "--col-ai": "320px",
+    "--col-ai": "clamp(300px, 27vw, 360px)",
   } as CSSProperties;
 
   return (
@@ -41,6 +41,7 @@ export function AppShell() {
         <ResizablePane
           width={nav}
           onResize={(w) => setPaneWidth("nav", w)}
+          className="nav-pane"
         >
           <AccountList />
         </ResizablePane>
@@ -48,6 +49,7 @@ export function AppShell() {
         <ResizablePane
           width={list}
           onResize={(w) => setPaneWidth("list", w)}
+          className="list-pane"
         >
           <MessageList />
         </ResizablePane>

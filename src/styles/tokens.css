@@ -39,7 +39,11 @@
 
   /* サイズ */
   --ui-fs: 14px;
-  --titlebar-h: 46px;
+  /* 上端の帯: macOS のタイトルバー(traffic light とドラッグ領域)が重なる高さ。
+     この帯の中に置いた要素はクリックが OS に吸われるため、操作要素は置かない。 */
+  --titlebar-strip: 28px;
+  /* 帯 + 操作行(検索/ボタン)。 */
+  --titlebar-h: 74px;
   --radius: 12px;
 }
 

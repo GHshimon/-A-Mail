@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import type { MessageHeader } from "@/ipc/types";
 import { useUiStore } from "@/store/uiStore";
 import { useMailStore } from "@/store/mailStore";
 import { useComposeStore } from "@/store/composeStore";
@@ -21,9 +22,18 @@ export function MessageView() {
   const setMode = useUiStore((s) => s.setMode);
 
   const messagesByFolder = useMailStore((s) => s.messagesByFolder);
+  const searchResults = useMailStore((s) => s.searchResults);
   const openMessage = useMailStore((s) => s.openMessage);
   const loadingMessage = useMailStore((s) => s.loadingMessage);
   const loadMessage = useMailStore((s) => s.loadMessage);
+
+  // 検索結果を開いた直後に検索を解除しても、本文取得までヘッダを保持する。
+  // accountId もキーに含め、アカウント切替後に別アカウントの情報を残さない。
+  const [preservedSearchHeader, setPreservedSearchHeader] = useState<{
+    accountId: number | null;
+    messageId: number;
+    header: MessageHeader;
+  } | null>(null);
 
   const resetDraft = useComposeStore((s) => s.resetDraft);
   const setKind = useComposeStore((s) => s.setKind);
@@ -37,8 +47,22 @@ export function MessageView() {
     folderId != null && messageId != null
       ? (messagesByFolder[folderId] ?? []).find((m) => m.id === messageId)
       : undefined;
+  const searchHeader = searchResults.find((m) => m.id === messageId);
+  useEffect(() => {
+    if (messageId != null && searchHeader) {
+      setPreservedSearchHeader({ accountId, messageId, header: searchHeader });
+    }
+  }, [accountId, messageId, searchHeader]);
 
-  if (messageId == null || !cached) {
+  const full = openMessage && openMessage.header.id === messageId ? openMessage : null;
+  const preserved =
+    preservedSearchHeader?.accountId === accountId &&
+    preservedSearchHeader.messageId === messageId
+      ? preservedSearchHeader.header
+      : undefined;
+  const header = cached ?? searchHeader ?? full?.header ?? preserved;
+
+  if (messageId == null || !header) {
     return (
       <div className="reader">
         <div className="reader-empty">
@@ -48,10 +72,9 @@ export function MessageView() {
     );
   }
 
-  const full = openMessage && openMessage.header.id === messageId ? openMessage : null;
-  const subject = full?.header.subject || cached.subject;
-  const from = full?.header.from || cached.from;
-  const date = full?.header.date ?? cached.date;
+  const subject = full?.header.subject || header.subject;
+  const from = full?.header.from || header.from;
+  const date = full?.header.date ?? header.date;
 
   return (
     <div className="reader">
@@ -113,7 +136,7 @@ export function MessageView() {
       ) : loadingMessage ? (
         <div className="msg-body-text muted">本文を取得しています…</div>
       ) : (
-        <div className="msg-body-text muted">{cached.snippet}</div>
+        <div className="msg-body-text muted">{header.snippet}</div>
       )}
     </div>
   );

@@ -5,7 +5,7 @@ import { useShortcuts } from "@/hooks/useShortcuts";
 import { useAccountStore } from "@/store/accountStore";
 import { useAiStore } from "@/store/aiStore";
 import { useUiStore } from "@/store/uiStore";
-import { getSettings, hasGeminiKey } from "@/ipc/ai";
+import { getSettings, hasGeminiKey, hasOpenAiKey } from "@/ipc/ai";
 import { isTauri } from "@/ipc/client";
 
 export default function App() {
@@ -15,6 +15,12 @@ export default function App() {
   const loadAccounts = useAccountStore((s) => s.loadAccounts);
   const setAiEnabled = useAiStore((s) => s.setAiEnabled);
   const setHasKey = useAiStore((s) => s.setHasKey);
+  const setProvider = useAiStore((s) => s.setProvider);
+  const loadProjects = useAiStore((s) => s.loadProjects);
+
+  useEffect(() => {
+    void loadProjects();
+  }, [loadProjects]);
 
   // 起動時: AI のオプトイン状態とキー有無を反映(既定は OFF)。
   useEffect(() => {
@@ -23,12 +29,16 @@ export default function App() {
       try {
         const s = await getSettings();
         setAiEnabled(s.ai_enabled);
-        setHasKey(await hasGeminiKey());
+        const selectedModel = s.ai_provider === "openai" ? s.openai_model : s.model;
+        setProvider(s.ai_provider, selectedModel);
+        setHasKey(
+          s.ai_provider === "openai" ? await hasOpenAiKey() : await hasGeminiKey(),
+        );
       } catch {
         /* 取得失敗時は既定(OFF)のまま */
       }
     })();
-  }, [setAiEnabled, setHasKey]);
+  }, [setAiEnabled, setHasKey, setProvider]);
   const accounts = useAccountStore((s) => s.accounts);
   const foldersByAccount = useAccountStore((s) => s.foldersByAccount);
   const selectAccount = useUiStore((s) => s.selectAccount);
