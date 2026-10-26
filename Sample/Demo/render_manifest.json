@@ -1,0 +1,17 @@
+{
+  "title": "A-mail Phase B mobile demonstration",
+  "disclaimer": "架空デモ。実メール・実認証・実AI生成・実送信は行っていません。",
+  "frame_size": "1080x1920",
+  "seconds_per_frame": 7.5,
+  "expected_duration_seconds": 60,
+  "frames": [
+    "frames/01-title.png",
+    "frames/02-context-boundary.png",
+    "frames/03-connect.png",
+    "frames/04-browser-auth.png",
+    "frames/05-opt-in.png",
+    "frames/06-generate-candidate.png",
+    "frames/07-human-review.png",
+    "frames/08-status.png"
+  ]
+}
