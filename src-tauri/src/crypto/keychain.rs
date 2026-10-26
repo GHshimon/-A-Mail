@@ -9,6 +9,7 @@ use crate::error::{AppError, AppResult};
 
 const SERVICE: &str = "com.a-mail.app";
 const GEMINI_ACCOUNT: &str = "gemini_api_key";
+const OPENAI_ACCOUNT: &str = "openai_api_key";
 
 fn entry(account: &str) -> AppResult<Entry> {
     Entry::new(SERVICE, account).map_err(AppError::from)
@@ -72,4 +73,18 @@ pub fn has_gemini_key() -> AppResult<bool> {
 /// Rust 内部でのみ使用(AI 呼び出し時。フロントには渡さない)。
 pub fn gemini_key() -> AppResult<Option<String>> {
     get_password(GEMINI_ACCOUNT)
+}
+
+// ---- OpenAI API キー専用ヘルパ ----
+
+pub fn set_openai_key(key: &str) -> AppResult<()> {
+    set_password(OPENAI_ACCOUNT, key)
+}
+
+pub fn has_openai_key() -> AppResult<bool> {
+    Ok(get_password(OPENAI_ACCOUNT)?.is_some())
+}
+
+pub fn openai_key() -> AppResult<Option<String>> {
+    get_password(OPENAI_ACCOUNT)
 }

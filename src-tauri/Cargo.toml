@@ -4,12 +4,18 @@ version = "0.1.0"
 description = "Gemini 補助つき Mac 用メールクライアント"
 authors = ["shimon"]
 edition = "2021"
-rust-version = "1.77"
+rust-version = "1.88"
 
 # main.rs は薄く、lib.rs の run() を呼ぶだけ(Tauri v2 推奨構成)。
 [lib]
 name = "a_mail_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
+
+[features]
+# Real-mail subscription generation remains disabled in ordinary builds until
+# the packaged isolation/lifecycle acceptance tests have passed.
+default = []
+codex-subscription-reply = []
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -29,7 +35,8 @@ thiserror = "2"
 rusqlite = { version = "0.32", features = ["bundled"] }
 
 # --- 非同期ランタイム(IMAP / M3 の AI ストリーミング等) ---
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "net"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "net", "process", "io-util", "time"] }
+libc = "0.2"
 
 # --- IMAP(M1)。native-tls: macOS は Secure Transport を使い openssl 非依存。 ---
 async-imap = { version = "0.10", default-features = false, features = ["runtime-tokio"] }
@@ -50,6 +57,9 @@ lettre = { version = "0.11", default-features = false, features = [
 
 # --- Message-ID 生成(M2)。RNG のみ使用。 ---
 uuid = { version = "1", features = ["v4"] }
+sha2 = "0.10"
+zip = { version = "8.6", default-features = false, features = ["deflate"] }
+quick-xml = { version = "0.41", default-features = false }
 
 # --- Gemini API 呼び出し(M3)。rustls で system openssl 非依存。 ---
 reqwest = { version = "0.12", default-features = false, features = [

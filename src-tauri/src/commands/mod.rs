@@ -6,6 +6,8 @@
 mod account_cmd;
 mod ai_cmd;
 mod ai_gen_cmd;
+mod ai_project_cmd;
+mod cli_cmd;
 mod compose_cmd;
 mod mail_cmd;
 mod search_cmd;
@@ -17,6 +19,8 @@ mod search_cmd;
 pub use account_cmd::*;
 pub use ai_cmd::*;
 pub use ai_gen_cmd::*;
+pub use ai_project_cmd::*;
+pub use cli_cmd::*;
 pub use compose_cmd::*;
 pub use mail_cmd::*;
 pub use search_cmd::*;

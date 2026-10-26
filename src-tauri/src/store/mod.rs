@@ -16,7 +16,8 @@ use models::{
 /// 設定(単一行 id=1)を取得。
 pub fn get_settings(conn: &Connection) -> AppResult<Settings> {
     let s = conn.query_row(
-        "SELECT ai_enabled, ai_scope_related_count, ai_send_body, model, theme, poll_interval_sec
+        "SELECT ai_enabled, ai_scope_related_count, ai_send_body, ai_provider, model,
+                openai_model, theme, poll_interval_sec
          FROM settings WHERE id = 1",
         [],
         |r| {
@@ -24,9 +25,11 @@ pub fn get_settings(conn: &Connection) -> AppResult<Settings> {
                 ai_enabled: r.get::<_, i64>(0)? != 0,
                 ai_scope_related_count: r.get(1)?,
                 ai_send_body: r.get::<_, i64>(2)? != 0,
-                model: r.get(3)?,
-                theme: r.get(4)?,
-                poll_interval_sec: r.get(5)?,
+                ai_provider: r.get(3)?,
+                model: r.get(4)?,
+                openai_model: r.get(5)?,
+                theme: r.get(6)?,
+                poll_interval_sec: r.get(7)?,
             })
         },
     )?;
@@ -36,7 +39,10 @@ pub fn get_settings(conn: &Connection) -> AppResult<Settings> {
 /// 設定の部分更新。指定フィールドのみ UPDATE し、更新後の全体を返す。
 pub fn update_settings(conn: &Connection, patch: &SettingsPatch) -> AppResult<Settings> {
     if let Some(v) = patch.ai_enabled {
-        conn.execute("UPDATE settings SET ai_enabled = ?1 WHERE id = 1", [v as i64])?;
+        conn.execute(
+            "UPDATE settings SET ai_enabled = ?1 WHERE id = 1",
+            [v as i64],
+        )?;
     }
     if let Some(v) = patch.ai_scope_related_count {
         conn.execute(
@@ -45,16 +51,31 @@ pub fn update_settings(conn: &Connection, patch: &SettingsPatch) -> AppResult<Se
         )?;
     }
     if let Some(v) = patch.ai_send_body {
-        conn.execute("UPDATE settings SET ai_send_body = ?1 WHERE id = 1", [v as i64])?;
+        conn.execute(
+            "UPDATE settings SET ai_send_body = ?1 WHERE id = 1",
+            [v as i64],
+        )?;
+    }
+    if let Some(v) = &patch.ai_provider {
+        if v != "gemini" && v != "openai" {
+            return Err(AppError::BadInput("未対応の AI プロバイダーです".into()));
+        }
+        conn.execute("UPDATE settings SET ai_provider = ?1 WHERE id = 1", [v])?;
     }
     if let Some(v) = &patch.model {
         conn.execute("UPDATE settings SET model = ?1 WHERE id = 1", [v])?;
+    }
+    if let Some(v) = &patch.openai_model {
+        conn.execute("UPDATE settings SET openai_model = ?1 WHERE id = 1", [v])?;
     }
     if let Some(v) = &patch.theme {
         conn.execute("UPDATE settings SET theme = ?1 WHERE id = 1", [v])?;
     }
     if let Some(v) = patch.poll_interval_sec {
-        conn.execute("UPDATE settings SET poll_interval_sec = ?1 WHERE id = 1", [v])?;
+        conn.execute(
+            "UPDATE settings SET poll_interval_sec = ?1 WHERE id = 1",
+            [v],
+        )?;
     }
     get_settings(conn)
 }
@@ -71,8 +92,7 @@ pub fn list_accounts(conn: &Connection) -> AppResult<Vec<Account>> {
         Ok(Account {
             id: r.get(0)?,
             email: r.get(1)?,
-            provider: Provider::from_db_str(&provider_str)
-                .unwrap_or(Provider::Gmail),
+            provider: Provider::from_db_str(&provider_str).unwrap_or(Provider::Gmail),
             display_name: r.get(3)?,
             imap_host: r.get(4)?,
             imap_port: r.get(5)?,
@@ -272,11 +292,20 @@ pub fn update_account_display_name(
 }
 
 /// IMAP 接続に必要な情報 (email, imap_host, imap_port) を引く。
-pub fn account_conn(conn: &Connection, account_id: i64) -> AppResult<Option<(String, String, u16)>> {
+pub fn account_conn(
+    conn: &Connection,
+    account_id: i64,
+) -> AppResult<Option<(String, String, u16)>> {
     match conn.query_row(
         "SELECT email, imap_host, imap_port FROM accounts WHERE id = ?1",
         [account_id],
-        |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, u16>(2)?)),
+        |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, u16>(2)?,
+            ))
+        },
     ) {
         Ok(v) => Ok(Some(v)),
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
@@ -417,8 +446,17 @@ pub fn upsert_draft(conn: &Connection, d: &DraftInput) -> AppResult<i64> {
                    in_reply_to = ?8, reference_ids = ?9, updated_at = ?10
                  WHERE id = ?11",
                 params![
-                    d.account_id, to_json, cc_json, bcc_json, d.subject, d.body_text,
-                    d.body_html, d.in_reply_to, refs, now, id,
+                    d.account_id,
+                    to_json,
+                    cc_json,
+                    bcc_json,
+                    d.subject,
+                    d.body_text,
+                    d.body_html,
+                    d.in_reply_to,
+                    refs,
+                    now,
+                    id,
                 ],
             )?;
             if n == 0 {
@@ -433,8 +471,16 @@ pub fn upsert_draft(conn: &Connection, d: &DraftInput) -> AppResult<i64> {
                     body_html, in_reply_to, reference_ids, updated_at)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
                 params![
-                    d.account_id, to_json, cc_json, bcc_json, d.subject, d.body_text,
-                    d.body_html, d.in_reply_to, refs, now,
+                    d.account_id,
+                    to_json,
+                    cc_json,
+                    bcc_json,
+                    d.subject,
+                    d.body_text,
+                    d.body_html,
+                    d.in_reply_to,
+                    refs,
+                    now,
                 ],
             )?;
             Ok(conn.last_insert_rowid())
@@ -614,7 +660,10 @@ pub fn save_message_body(
         ],
     )?;
 
-    conn.execute("DELETE FROM attachments WHERE message_id = ?1", [message_id])?;
+    conn.execute(
+        "DELETE FROM attachments WHERE message_id = ?1",
+        [message_id],
+    )?;
     for (filename, mime, size, cid) in attachments {
         conn.execute(
             "INSERT INTO attachments (message_id, filename, mime, size, content_id)

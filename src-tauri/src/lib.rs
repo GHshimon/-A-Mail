@@ -2,6 +2,8 @@
 
 pub mod account;
 pub mod ai;
+pub mod ai_projects;
+pub mod cli_jobs;
 pub mod commands;
 pub mod crypto;
 pub mod error;
@@ -36,12 +38,7 @@ pub fn run() {
             {
                 use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
                 if let Some(window) = app.get_webview_window("main") {
-                    let _ = apply_vibrancy(
-                        &window,
-                        NSVisualEffectMaterial::Sidebar,
-                        None,
-                        None,
-                    );
+                    let _ = apply_vibrancy(&window, NSVisualEffectMaterial::Sidebar, None, None);
                 }
             }
 
@@ -52,6 +49,8 @@ pub fn run() {
             commands::update_settings,
             commands::set_gemini_key,
             commands::has_gemini_key,
+            commands::set_openai_key,
+            commands::has_openai_key,
             commands::list_accounts,
             commands::add_account,
             commands::remove_account,
@@ -69,6 +68,14 @@ pub fn run() {
             commands::ai_complete,
             commands::ai_context_sidebar,
             commands::ai_generate_reply,
+            commands::list_ai_projects,
+            commands::add_ai_project,
+            commands::remove_ai_project,
+            commands::search_ai_project_files,
+            commands::get_cli_status,
+            commands::start_cli_job,
+            commands::get_cli_job,
+            commands::cancel_cli_job,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

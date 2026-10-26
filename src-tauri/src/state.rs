@@ -5,6 +5,7 @@ use std::sync::Mutex;
 use rusqlite::Connection;
 use tauri::Manager;
 
+use crate::cli_jobs::CliJobManager;
 use crate::error::{AppError, AppResult};
 use crate::store::db;
 
@@ -13,6 +14,8 @@ pub struct AppState {
     pub db: Mutex<Connection>,
     /// Gemini など外部 HTTP 用クライアント(M3 で使用)。
     pub http: reqwest::Client,
+    /// Codex CLI は1ジョブだけを実行し、状態とキャンセルをここで直列化する。
+    pub cli_jobs: CliJobManager,
 }
 
 impl AppState {
@@ -22,6 +25,7 @@ impl AppState {
         Ok(Self {
             db: Mutex::new(conn),
             http: reqwest::Client::new(),
+            cli_jobs: CliJobManager::new(),
         })
     }
 
