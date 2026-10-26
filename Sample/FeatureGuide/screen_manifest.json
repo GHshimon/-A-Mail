@@ -1,0 +1,27 @@
+{
+  "captured_from": "http://127.0.0.1:1421/",
+  "capture_type": "A-mail React UI running in the browser demo provider",
+  "source_data": "fictional browser demo data; no real mail, AI provider, SMTP, or authentication",
+  "privacy_processing": [
+    "Replaced personal-looking account labels and From addresses with example.test values",
+    "Replaced a personal-looking GitHub handle with demo/a-mail",
+    "Cropped AI panels so unrelated account data is outside the delivered image"
+  ],
+  "files": [
+    "01-inbox.png",
+    "02-message-reader.png",
+    "03-mail-search.png",
+    "04-context-confirmed.png",
+    "05-reply-candidate-panel.png",
+    "06-applied-draft.png",
+    "07-chatgpt-connected-panel.png",
+    "08-style-learning-preview-panel.png",
+    "09-style-profile-editor-panel.png",
+    "10-style-profile-preview-panel.png",
+    "11-codex-cli-panel.png",
+    "12-new-compose-context-panel.png",
+    "13-account-settings.png",
+    "14-legacy-ai-provider-panel.png",
+    "15-context-confirmed-panel.png"
+  ]
+}
