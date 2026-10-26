@@ -3,6 +3,7 @@
 //! ネットワーク I/O(SMTP 送信・IMAP 書き込み)中は DB ロックを保持しない。
 //! 秘密情報(アプリパスワード・本文)は戻り値・ログに載せない。
 
+use rusqlite::OptionalExtension;
 use tauri::State;
 use tracing::warn;
 
@@ -12,7 +13,10 @@ use crate::error::{AppError, AppResult};
 use crate::imap;
 use crate::smtp;
 use crate::state::AppState;
-use crate::store::{self, models::{DraftHeader, DraftInput, OutgoingMessage, SentInfo}};
+use crate::store::{
+    self,
+    models::{DraftHeader, DraftInput, OutgoingMessage, SentInfo},
+};
 
 /// メールを送信する。成功後、provider に応じ Sent へ APPEND し、返信元へ \Answered、
 /// 下書きがあれば削除する(いずれも best-effort)。
@@ -21,13 +25,31 @@ pub async fn send_message(
     state: State<'_, AppState>,
     message: OutgoingMessage,
 ) -> AppResult<SentInfo> {
+    // A managed assistant draft must pass its prepare/claim token path. Legacy
+    // drafts retain their existing send behavior and are not retroactively
+    // blocked by this check.
+    if let Some(draft_id) = message.draft_id {
+        let conn = state.db()?;
+        let managed: Option<i64> = conn
+            .query_row(
+                "SELECT 1 FROM assistant_draft_meta WHERE draft_id = ?1",
+                [draft_id],
+                |r| r.get(0),
+            )
+            .optional()?;
+        if managed.is_some() {
+            return Err(AppError::BadInput(
+                "確認型下書きは送信確認を完了してから送信してください".into(),
+            ));
+        }
+    }
     // 1) 送信に必要な情報を DB から収集(ロックはこのブロック内だけ)。
     let (smtp, imap_conn, sent_target, answered_target) = {
         let conn = state.db()?;
-        let smtp = store::account_smtp_conn(&conn, message.account_id)?
-            .ok_or(AppError::NotFound)?;
-        let imap_conn = store::account_conn(&conn, message.account_id)?
-            .ok_or(AppError::NotFound)?;
+        let smtp =
+            store::account_smtp_conn(&conn, message.account_id)?.ok_or(AppError::NotFound)?;
+        let imap_conn =
+            store::account_conn(&conn, message.account_id)?.ok_or(AppError::NotFound)?;
         // Gmail は SMTP 送信分を自動で Sent に入れるため APPEND しない(二重化回避)。
         let sent_target = if smtp.provider == Provider::Gmail {
             None

@@ -7,10 +7,12 @@ mod account_cmd;
 mod ai_cmd;
 mod ai_gen_cmd;
 mod ai_project_cmd;
+mod assistant_cmd;
 mod cli_cmd;
 mod compose_cmd;
 mod mail_cmd;
 mod search_cmd;
+mod subscription_cmd;
 
 // glob 再エクスポート必須。`#[tauri::command]` は関数の隣に補助アイテム
 // (`__cmd__x` マクロ / `__tauri_command_name_x`)を生成し、`generate_handler!` は
@@ -20,7 +22,9 @@ pub use account_cmd::*;
 pub use ai_cmd::*;
 pub use ai_gen_cmd::*;
 pub use ai_project_cmd::*;
+pub use assistant_cmd::*;
 pub use cli_cmd::*;
 pub use compose_cmd::*;
 pub use mail_cmd::*;
 pub use search_cmd::*;
+pub use subscription_cmd::*;
