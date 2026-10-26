@@ -1,21 +1,24 @@
-# -A-Mail 仕様書 (SPEC)
+# A-Mail 仕様書 (SPEC)
 
-Mac 上で動作する、AI 入力補助つきの独立系メールクライアント。個人利用目的で、配布・App Store 申請は行わない。
+Mac 上で動作する、確認型AI下書き支援つきの独立系メールクライアント。
 
-- ステータス: 仕様確定(初版)
-- 最終更新: 2026-07-04
-- 対象プラットフォーム: macOS(個人利用のみ)
+- ステータス: 基本仕様。実装詳細は下記P0仕様を優先する
+- 最終更新: 2026-09-10
+- 対象プラットフォーム: macOS
+
+> **仕様の優先順位:** 顧客境界・確認型下書き・送信安全性は `DRAFT_ASSISTANT_P0_IMPLEMENTATION_SPEC.md`、オンデマンド文体学習・Gmail OAuth・利用者サブスクリプションAI・起動中限定の実行は `MAIL_AGENT_RUNTIME_P0_IMPLEMENTATION_SPEC.md` を正とする。本書に残る初版のAPIキー/アプリパスワード前提より両P0仕様を優先する。
 
 ---
 
 ## 1. 目的とコンセプト
 
 - 自分のメール(Gmail / iCloud)を 1 つの Mac アプリで読み書きできる、軽量なメールクライアント。
-- 最大の特徴は **Gemini API を使ったメール作成支援**:
+- 最大の特徴は **本人が確認して送るAIメール作成支援**:
   - 入力中の文をリアルタイムに補完(スマート作成)
   - 作成中の宛先・話題に関連する **過去メールの要点をサイドバーに表示**
   - 受信メールに対する **返信ドラフトの生成**
-- 配布は行わず、自分の Mac でビルドして使う。
+- AIは候補下書きまでとし、本文への反映と送信は必ず本人が行う。
+- 将来の他者利用を想定するが、OAuth審査・AI runtime同梱条件・実機受入が完了するまで一般配布可能とは扱わない。
 
 ---
 
@@ -28,26 +31,27 @@ Mac 上で動作する、AI 入力補助つきの独立系メールクライア�
 | メール送受信 | **IMAP / SMTP を直接利用** | `async-imap` + `lettre` |
 | メールパース | `mail-parser` | MIME/添付/エンコード処理 |
 | ローカル DB | **SQLite**(`rusqlite` or `sqlx`)+ **FTS5** | メールキャッシュ・全文検索 |
-| 認証情報の保管 | **macOS Keychain**(`keyring` crate) | パスワード/API キーを平文で持たない |
-| AI | **Gemini API**(`gemini-2.5-flash`) | 補完・要約・下書き生成。低レイテンシ優先 |
-| HTTP クライアント | `reqwest` | Gemini API 呼び出し(Rust 側) |
+| 認証情報の保管 | **macOS Keychain**(`keyring` crate) | Gmail refresh token等をDB/ログへ出さない |
+| AI | **利用者サブスクリプション接続を主経路** | P0候補は隔離したCodex App Server + ChatGPT login。APIキー方式は上級者用 |
+| HTTP クライアント | `reqwest` | OAuth token交換・任意API provider呼び出し(Rust側) |
 
-- **フロント↔Rust** は Tauri コマンド(IPC)で連携。ネットワーク/認証/AI 呼び出しは Rust 側に集約し、API キーやパスワードをフロントに露出させない。
+- **フロント↔Rust** は Tauri コマンド(IPC)で連携。ネットワーク/認証/AI 呼び出しは Rust 側に集約し、token・APIキー・パスワードをフロントに露出させない。
 
 ---
 
 ## 3. 対応プロバイダと認証(決定事項)
 
 - **初期対応: Gmail / iCloud**(汎用 IMAP/SMTP は将来対応)。
-- **認証はアプリパスワード方式で統一**:
-  - Gmail: 2 段階認証を有効化 → アプリパスワードを発行 → IMAP/SMTP 接続。
-    - 補足: 個人利用では Gmail API + OAuth は必須ではない。アプリパスワードで IMAP/SMTP 直結が最もシンプル。
-  - iCloud: アプリパスワードを発行 → IMAP/SMTP 接続。
+- **Gmailの主経路はOAuth 2.0**:
+  - 「Googleで接続」からシステムブラウザ、PKCE S256、random loopback callbackを使う。
+  - 現行IMAP/SMTPコアは維持し、SASL XOAUTH2で認証する。
+  - refresh tokenはKeychain、access tokenは起動中のプロセスメモリに保持する。
+  - Google OAuth公開アプリ検証が完了するまでは開発用test userに限定する。
+- **iCloudはアプリパスワード**を使用する。Gmailアプリパスワードは移行・詳細設定用に残せるが、新規登録の主動線にしない。
 - 接続情報(プリセット):
   - Gmail: IMAP `imap.gmail.com:993` (SSL) / SMTP `smtp.gmail.com:465` (SSL) or `587` (STARTTLS)
   - iCloud: IMAP `imap.mail.me.com:993` (SSL) / SMTP `smtp.mail.me.com:587` (STARTTLS)
-- 認証情報は **Keychain** に保存(メールアドレスをキーに、アプリパスワードを格納)。
-- OAuth 方式は将来の拡張余地として残す(スコープ外)。
+- 認証情報は **Keychain** に保存し、DB・ログ・フロントDTOへ秘密を出さない。
 
 ### 3.1 Gmail のラベル / スレッド / 検索の同期範囲(IMAP 経由)
 
@@ -85,21 +89,23 @@ Mac 上で動作する、AI 入力補助つきの独立系メールクライア�
 ### 4.3 スコープ外(当面やらない)
 
 - アプリの配布 / App Store 申請 / 署名配布
-- OAuth 認証(Gmail API / Google People・Calendar API)
-- MCP 経由の外部データ連携(Claude API 併用 = 別プロバイダ・別課金・データ経路増のため見送り)
-- Google の連絡先 / カレンダー「本体」の取得(OAuth 必須のため対象外)
+- Google People・Calendar APIとの同期
+- AIへIMAP/SMTP、shell、ファイル編集、外部MCPを直接公開すること
+- 本人確認なしの本文反映・自動送信
+- アプリ終了後の常駐同期・生成・学習
+- Google の連絡先 / カレンダー「本体」の取得(メールとは別の追加OAuth scopeが必要なため対象外)
 - Windows / Linux 向けの動作保証(Tauri なので技術的には可能だが対象外)
 
-### 4.4 連絡先・カレンダーの扱い(方針確定: Gemini キー 1 本・OAuth なし)
+### 4.4 連絡先・カレンダーの扱い
 
-「**Gemini API キー 1 本で軽く**」を方針とし、追加の認証(OAuth)や別プロバイダ(Claude API + MCP)は導入しない。
+Gmailメール接続用OAuthは導入するが、P0ではPeople/Calendar用scopeを追加しない。メール以外の個人データへ権限を広げない。
 
 - **連絡先**: 送受信メールの From / To / Cc から **アドレス帳を自動生成**(宛先オートコンプリート)。外部 API・OAuth 不要。
-- **カレンダー**: メール本文中の日時表現(例「来週火曜 14 時」)を **Gemini が抽出**し予定候補として提示する程度の補助。カレンダー本体の読み書きはしない。
-- **重要な区別**: Gemini API キーは「生成 AI モデル」への鍵であり、ユーザーの Gmail / カレンダー / 連絡先へのアクセス権は持たない。個人データ取得には別途 OAuth(Google)や DAV(iCloud)が必要で、本方針では行わない。
+- **カレンダー**: メール本文中の日時表現(例「来週火曜 14 時」)を選択中のAI providerが抽出し、予定候補として提示する程度の補助。カレンダー本体の読み書きはしない。
+- **重要な区別**: Gmail OAuthはメールボックスへの権限、AI接続は返信候補を生成する利用枠であり、相互に代用できない。各接続を独立して解除可能にする。
 - **将来の拡張余地(現状スコープ外)**: 「本物」の予定 / 連絡先が必要になった場合の追加先を記録しておく。
   - iCloud: CalDAV / CardDAV(アプリパスワードのまま可)
-  - Google: OAuth(Calendar / People API)、または既製 MCP コネクタ経由の Claude API(構成は重い)
+  - Google: Calendar / People API用の追加OAuth scope。メール接続の同意へ無断追加しない。
 
 ---
 
@@ -125,18 +131,20 @@ Mac 上で動作する、AI 入力補助つきの独立系メールクライア�
 
 ---
 
-## 6. AI 入力補助(Gemini)仕様
+## 6. AI 入力補助仕様
 
 ### 6.1 機能
 
 | 記号 | 機能 | 内容 |
 |---|---|---|
-| A | **予測入力(スマート補完)** | 入力中、続きの文を Gemini が提案。ゴーストテキスト表示、Tab で確定。デバウンス制御。 |
-| B | **関連情報サイドバー** | 作成中の宛先/件名/本文から、関連する過去メールを FTS5 で検索 → Gemini が「経緯・約束事・未対応事項」等の要点を抽出してサイドに表示。関連メール一覧も併記。 |
+| A | **予測入力(スマート補完)** | 入力中、続きの文を選択中のAI providerが提案。ゴーストテキスト表示、Tab で確定。デバウンス制御。 |
+| B | **関連情報サイドバー** | 作成中の宛先/件名/本文から、境界内の関連メールをFTS5で検索 → AIが「経緯・約束事・未対応事項」等の候補を根拠付きで表示。 |
 | C | **返信ドラフト生成** | 受信メールを入力に、返信の下書きを丸ごと生成(「AI で下書き」ボタン)。 |
 
-- 使用モデル: **`gemini-2.5-flash`**(低レイテンシ優先)。埋め込みは将来 `gemini-embedding` 系を検討。
-- Gemini API キーは設定画面でユーザーが入力し、**Keychain に保存**。呼び出しは **Rust バックエンド経由**(キーをフロントに出さない)。
+- 主経路は利用者が「ChatGPTで接続」して使う対応ChatGPT/Codex利用枠。通常のOpenAI API課金をChatGPT契約の消費と説明しない。
+- Codex App Serverを使う場合はA-mail専用の空cwd、一回限りthread、tool/MCP/shell/file操作禁止とし、非永続化・同梱条件の受入が終わるまで実メールで有効化しない。
+- 既存Gemini/APIキー経路は開発・上級者向けに残せるが、初期値や無断fallbackにしない。
+- 文体学習は本人が100件/200件を選んで開始した時だけ行い、抽象プロファイルを本人が編集・有効化する。生メールの学習用複製は保存しない。
 
 ### 6.2 検索(サイドバーの土台)
 
@@ -145,11 +153,12 @@ Mac 上で動作する、AI 入力補助つきの独立系メールクライア�
 
 ### 6.3 プライバシー方針(重要)
 
-- AI 補助機能はメール本文を **外部(Google)に送信** する。以下を必須とする:
+- AI 補助機能は選択したproviderへメール本文を送信し得る。以下を必須とする:
   - **オプトイン**: 機能を明示的にオンにしたときだけ送信。デフォルトはオフ。
   - **送信範囲の制御**: 送る対象(作成中メール / 関連過去メール n 件)を限定・明示。
   - 設定でいつでも無効化できる。
-- API キーは Keychain 管理、ログに残さない。
+- token/APIキーはKeychain等の安全な保管先で管理し、ログに残さない。
+- AI出力は候補として分離し、本人が「本文に反映」を押すまで作成本文を変えない。生成完了から送信を開始しない。
 
 ---
 
@@ -170,7 +179,7 @@ Mac 上で動作する、AI 入力補助つきの独立系メールクライア�
 │                                            │                    │
 │              ┌──────────────┬──────────────┼───────────┐        │
 │              ▼              ▼              ▼           ▼        │
-│          SQLite         Keychain      IMAP/SMTP    Gemini API   │
+│          SQLite         Keychain      IMAP/SMTP    AI Provider  │
 │        (cache/FTS5)   (secrets)     (async-imap/   (reqwest)    │
 │                                      lettre)                    │
 └─────────────────────────────────────────────────────────────────┘
@@ -188,7 +197,8 @@ Mac 上で動作する、AI 入力補助つきの独立系メールクライア�
 - `messages_fts`: FTS5 仮想テーブル(subject, from, to, body_text)
 - `attachments`: id, message_id, filename, mime, size, content_id, local_path(遅延取得)
 - `drafts`: id, account_id, to, cc, bcc, subject, body, in_reply_to, updated_at
-- `settings`: ai_enabled, ai_scope, model 等(キー本体は Keychain)
+- `settings`: ai_enabled, ai_scope, provider, model 等(秘密本体は Keychain/provider管理)
+- `style_profiles / style_profile_jobs`: account境界の抽象文体と任意実行job。生メール本文を追加保存しない
 
 ---
 
@@ -197,8 +207,9 @@ Mac 上で動作する、AI 入力補助つきの独立系メールクライア�
 1. **M0 土台**: Tauri + React 雛形、macOS 風レイアウトのガワ、設定/Keychain の配線。
 2. **M1 閲覧**: アカウント登録 → IMAP 受信 → SQLite キャッシュ → 一覧/本文表示 → 既読管理。
 3. **M2 作成/送信**: エディタ → SMTP 送信(新規/返信/転送)→ 下書き保存。
-4. **M3 AI 補助**: Gemini 配線 → 予測入力(A)→ 関連情報サイドバー(B, FTS5)→ 返信ドラフト(C)。
-5. **M4 拡張**: 複数アカウント / フォルダ操作 / 検索 UI / 添付 / 通知 / IDLE / スレッド表示。
+4. **M3 確認型AI補助**: 顧客境界 → 候補生成 → 根拠/要確認 → 本人反映 → 安全な送信ゲート。
+5. **M4 接続と本人文体**: ChatGPT接続、Gmail OAuth、100/200件文体profile、起動中限定queue。
+6. **M5 拡張**: 複数アカウント / フォルダ操作 / 検索 UI / 添付 / 通知 / IDLE / スレッド表示。
 
 ---
 
@@ -207,8 +218,9 @@ Mac 上で動作する、AI 入力補助つきの独立系メールクライア�
 - macOS(個人の Mac)
 - **Xcode 本体は不要**。ただし **Xcode Command Line Tools** は必要(無料・軽量)。
 - Rust ツールチェイン(`rustup`)、Node.js(フロントビルド)。
-- 各メールアカウントで **アプリパスワード**を事前発行(Gmail は 2 段階認証が前提)。
-- Gemini API キー(AI 補助を使う場合。無料枠内での利用を想定)。
+- Gmailは「Googleで接続」。公開利用には提供者側のOAuth client・同意画面・必要な検証を事前に用意する。
+- iCloudはアプリパスワードを事前発行する。
+- AI補助は対応する利用者自身のChatGPT/Codex接続を主経路とする。APIキーは必須にしない。
 
 ---
 
@@ -218,5 +230,6 @@ Mac 上で動作する、AI 入力補助つきの独立系メールクライア�
 - 同期の頻度・戦略(初期はポーリング、後で IDLE)。
 - 予測入力のトリガー/デバウンス時間、プロンプト設計。
 - エラー処理・オフライン時の挙動。
+- Codex runtimeをA-mailへ同梱・再配布できる条件と、App Server prompt/threadの非永続化方法。確認できるまで実メールでreleaseしない。
 
 > 実装レベルの詳細(モジュール構成、Tauri コマンド一覧、コンポーネント設計、プロンプト設計等)は別途 `IMPLEMENTATION.md`(実装設計書)にまとめる。
