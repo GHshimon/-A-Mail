@@ -42,12 +42,38 @@ export function syncFolder(
   return invoke<MessageHeader[]>("sync_folder", { folderId, limit });
 }
 
+/** 一覧の 1 ページ分(過去方向の読み足し)。 */
+export interface MessagePage {
+  messages: MessageHeader[];
+  has_more: boolean;
+}
+
+/**
+ * 一覧を過去方向へ 1 ページ読み足す。DB キャッシュで足りなければ IMAP から補充する。
+ * `offset` はすでに表示している件数。
+ */
+export function loadMoreMessages(
+  folderId: number,
+  offset: number,
+  limit?: number,
+): Promise<MessagePage> {
+  return invoke<MessagePage>("load_more_messages", { folderId, offset, limit });
+}
+
 export function getMessage(messageId: number): Promise<MessageFull> {
   return invoke<MessageFull>("get_message", { messageId });
 }
 
 export function markRead(messageId: number, seen: boolean): Promise<void> {
   return invoke<void>("mark_read", { messageId, seen });
+}
+
+export function searchMessages(
+  accountId: number,
+  query: string,
+  limit = 100,
+): Promise<MessageHeader[]> {
+  return invoke<MessageHeader[]>("search_messages", { accountId, query, limit });
 }
 
 // ---- M2: 送信 / 下書き ----

@@ -35,9 +35,14 @@ export function buildReplyDraft(full: MessageFull, accountId: number): Partial<C
     cc: [],
     bcc: [],
     subject: withPrefix(full.header.subject, "Re:"),
-    body: header + quoteBody(full),
+    // Keep the quoted original separate from the editable reply.  This lets an
+    // empty first reply accept a generated candidate without mistaking a quote
+    // for human-authored text.
+    body: "",
+    quotedBody: header + quoteBody(full),
     inReplyTo: full.message_id || null,
     references: refs,
+    sourceMessageId: full.header.id,
     draftId: null,
   };
 }
@@ -59,6 +64,7 @@ export function buildForwardDraft(full: MessageFull, accountId: number): Partial
     body: `\n\n${sep}\n${meta}\n${full.body_text ?? ""}`,
     inReplyTo: null,
     references: [],
+    sourceMessageId: null,
     draftId: null,
   };
 }

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { ThemePref } from "@/ipc/types";
+import { useMailStore } from "@/store/mailStore";
 
 /** 閲覧 / 作成 / 設定 のモード。ReaderArea の表示を切り替える。 */
 export type ViewMode = "read" | "compose" | "settings";
@@ -76,7 +77,12 @@ export const useUiStore = create<UiState>((set) => ({
       },
     })),
   setMode: (mode) => set({ mode }),
-  selectAccount: (selectedAccountId) => set({ selectedAccountId }),
+  selectAccount: (selectedAccountId) => {
+    if (useUiStore.getState().selectedAccountId !== selectedAccountId) {
+      useMailStore.getState().clearSearch();
+    }
+    set({ selectedAccountId });
+  },
   selectFolder: (selectedFolderId) =>
     set({ selectedFolderId, selectedMessageId: null }),
   selectMessage: (selectedMessageId) => set({ selectedMessageId }),

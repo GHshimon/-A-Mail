@@ -15,8 +15,18 @@ export interface ComposeDraft {
   body: string;
   inReplyTo: string | null;
   references: string[];
+  /** AI 返信生成が参照するローカル DB 上の元メッセージ ID。送信データには含めない。 */
+  sourceMessageId: number | null;
   /** DB 保存済み下書き ID(オートセーブ後に設定)。 */
   draftId: number | null;
+  /** P0 assistant persistence metadata.  These never travel in the mail payload. */
+  sessionId: string;
+  revision: number | null;
+  workspaceId: number | null;
+  intent: string;
+  replyRunId: string | null;
+  /** Display-only original-message quotation; never treated as human reply text. */
+  quotedBody: string | null;
 }
 
 /** 送信/保存の進行状態(ツールバーのフィードバック表示用)。 */
@@ -43,6 +53,7 @@ interface ComposeState {
   setCc: (cc: string[]) => void;
   setBcc: (bcc: string[]) => void;
   setDraftId: (id: number | null) => void;
+  setAssistantMeta: (meta: Partial<Pick<ComposeDraft, "draftId" | "revision" | "workspaceId" | "intent" | "replyRunId" | "sessionId">>) => void;
   setTone: (tone: Tone) => void;
   setLength: (length: Length) => void;
   setKind: (kind: ComposeState["kind"]) => void;
@@ -59,8 +70,21 @@ const emptyDraft: ComposeDraft = {
   body: "",
   inReplyTo: null,
   references: [],
+  sourceMessageId: null,
   draftId: null,
+  sessionId: newSessionId(),
+  revision: null,
+  workspaceId: null,
+  intent: "",
+  replyRunId: null,
+  quotedBody: null,
 };
+
+function newSessionId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `compose-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 export const useComposeStore = create<ComposeState>((set) => ({
   // 初期は空の新規作成。返信/転送は resetDraft(...) で内容を差し込む。
@@ -77,6 +101,7 @@ export const useComposeStore = create<ComposeState>((set) => ({
   setCc: (cc) => set((s) => ({ draft: { ...s.draft, cc } })),
   setBcc: (bcc) => set((s) => ({ draft: { ...s.draft, bcc } })),
   setDraftId: (draftId) => set((s) => ({ draft: { ...s.draft, draftId } })),
+  setAssistantMeta: (meta) => set((s) => ({ draft: { ...s.draft, ...meta } })),
   setTone: (tone) => set({ tone }),
   setLength: (length) => set({ length }),
   setKind: (kind) => set({ kind }),
@@ -86,7 +111,7 @@ export const useComposeStore = create<ComposeState>((set) => ({
     // [draft.to] 依存 effect が発火せず、宛先ローカル state が消えない
     // (送信後に宛先が残り、余分なオートセーブが走る)不具合を防ぐ。
     set({
-      draft: { ...emptyDraft, to: [], cc: [], bcc: [], references: [], ...partial },
+      draft: { ...emptyDraft, to: [], cc: [], bcc: [], references: [], sessionId: newSessionId(), revision: null, workspaceId: null, intent: "", replyRunId: null, quotedBody: null, ...partial },
       status: { phase: "idle" },
     }),
 }));

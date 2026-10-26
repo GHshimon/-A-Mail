@@ -1,4 +1,4 @@
-import type { Account, Folder, MessageHeader } from "@/ipc/types";
+import type { Account, Folder, MessageFull, MessageHeader } from "@/ipc/types";
 
 /**
  * M0 用のプレースホルダデータ。
@@ -112,3 +112,20 @@ export const mockMessages: Record<number, MessageHeader[]> = {
     },
   ],
 };
+
+/** Browser-only fictional body. It never reaches IMAP, SMTP, or an AI API. */
+export function mockMessageFull(messageId: number): MessageFull | null {
+  const header = Object.values(mockMessages).flat().find((message) => message.id === messageId);
+  if (!header) return null;
+  return {
+    header: { ...header, from: `架空担当者 <sample-${messageId}@example.test>` },
+    to: ["test-user@example.test"],
+    cc: [],
+    message_id: `<test-${messageId}@example.test>`,
+    in_reply_to: null,
+    references: [],
+    body_text: `【テストメール／架空】\n${header.snippet}\n\nこの本文・人物・会社・日程はUI確認用の架空データです。`,
+    body_html: null,
+    attachments: [],
+  };
+}
