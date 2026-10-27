@@ -155,7 +155,7 @@ mod tests {
 
     #[test]
     fn builds_headers_and_normalizes_message_ids() {
-        let (msg, id) = build_message("me@example.com", Some("ドウチ"), &sample()).unwrap();
+        let (msg, id) = build_message("me@example.com", Some("デモ"), &sample()).unwrap();
         assert!(id.starts_with('<') && id.ends_with('>'));
         let raw = String::from_utf8(msg.formatted()).unwrap();
         assert!(raw.contains(&format!("Message-ID: {id}")));

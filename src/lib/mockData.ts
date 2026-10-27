@@ -11,9 +11,9 @@ import type { Account, Folder, MessageFull, MessageHeader } from "@/ipc/types";
 export const mockAccounts: Account[] = [
   {
     id: 1,
-    email: "douchi.shimon@gmail.com",
+    email: "demo@example.test",
     provider: "gmail",
-    display_name: "ドウチ",
+    display_name: "デモ",
     imap_host: "imap.gmail.com",
     imap_port: 993,
     smtp_host: "smtp.gmail.com",
@@ -22,9 +22,9 @@ export const mockAccounts: Account[] = [
   },
   {
     id: 2,
-    email: "shimon@icloud.com",
+    email: "sample@example.test",
     provider: "icloud",
-    display_name: "ドウチ (iCloud)",
+    display_name: "デモ (iCloud)",
     imap_host: "imap.mail.me.com",
     imap_port: 993,
     smtp_host: "smtp.mail.me.com",
